@@ -1,0 +1,14 @@
+# Sensitive configuration
+.openclaw/
+
+# OS files
+.DS_Store
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.bak
