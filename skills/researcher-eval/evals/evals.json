@@ -1,5 +1,5 @@
 {
-  "skill_name": "ai-researcher-eval",
+  "skill_name": "researcher-eval",
   "evals": [
     {
       "id": 1,
