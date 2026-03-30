@@ -1,0 +1,23 @@
+{
+  "skill_name": "ai-researcher-eval",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "帮我评估一下 Shuyan Zhou 的学术影响力和技术能力，她是 Duke 大学的助理教授，之前在 CMU 读博士，研究方向是 LLM Agent 和 Web Agent",
+      "expected_output": "一份包含学术指标、GitHub数据、梯队定位、综合评估的 Markdown 报告",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "调研一下 Karpathy 的技术背景，他之前在 OpenAI 和 Tesla 工作，做了很多开源项目",
+      "expected_output": "一份包含论文引用、GitHub项目分析、社媒评价的评估报告",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "分析一下 Guohao Li 的学术贡献，他是 CAMEL-AI 的核心贡献者之一",
+      "expected_output": "一份包含 Google Scholar 数据、GitHub 贡献、与 CAMEL-AI 项目关联的评估报告",
+      "files": []
+    }
+  ]
+}
