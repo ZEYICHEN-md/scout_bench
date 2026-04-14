@@ -1,6 +1,7 @@
 ---
 name: domain-digger
 description: Generate concise .com domain name ideas based on user intent and check availability. Use when the user wants to find available domain names, brainstorm domain ideas, or check if specific domains are registered. Triggers on phrases like "find me a domain", "domain name ideas", "check domain availability", "帮我找域名", "挖掘域名".
+visibility: PRIVATE
 ---
 
 # Domain Digger

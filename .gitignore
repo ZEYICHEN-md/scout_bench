@@ -1,3 +1,10 @@
+# Temporary/working files
+.clawhub/
+domain_candidates.txt
+domain_candidates2.txt
+domain_candidates3.txt
+memory/
+
 # Sensitive configuration
 .openclaw/
 
