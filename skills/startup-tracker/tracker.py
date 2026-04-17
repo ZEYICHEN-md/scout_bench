@@ -115,9 +115,9 @@ def load_config():
             or os.environ.get(env_var)
         )
 
-    TAVILY_KEY    = _key("tavily-key", "TAVILY_API_KEY")
-    FIRECRAWL_KEY = _key("firecrawl-key", "FIRECRAWL_API_KEY")
-    APIFY_KEY     = _key("apify-key", "APIFY_TOKEN")
+    tavily_k    = _key("tavily-key", "TAVILY_API_KEY")
+    firecrawl_k = _key("firecrawl-key", "FIRECRAWL_API_KEY")
+    apify_k     = _key("apify-key", "APIFY_TOKEN")
 
     # ── Resolve monitoring days: CLI --days > config.monitor_interval_days > tavily.search_days_back > 7 ──
     monitor_days = args.days
@@ -131,9 +131,9 @@ def load_config():
 
     # Set globals for data source functions
     global TAVILY_API_KEY, FIRECRAWL_API_KEY, APIFY_TOKEN
-    TAVILY_API_KEY    = TAVILY_KEY
-    FIRECRAWL_API_KEY = FIRECRAWL_KEY
-    APIFY_TOKEN       = APIFY_KEY
+    TAVILY_API_KEY    = tavily_k
+    FIRECRAWL_API_KEY = firecrawl_k
+    APIFY_TOKEN       = apify_k
     return cfg, companies
 
 # ── API Key Validation ───────────────────────────────────────────────────────

@@ -2,6 +2,14 @@
 
 Search WeChat public account articles via JZL/dajiala API.
 
+## Triggers
+Use when user asks to:
+- Search WeChat articles / posts / content
+- Find WeChat public account articles
+- Search 微信文章 / 微信搜索 / 微信公众号
+- Query WeChat for news, analysis, or posts
+- "搜一下微信" / "search WeChat" / "找微信文章"
+
 ## Usage
 
 ```bash
