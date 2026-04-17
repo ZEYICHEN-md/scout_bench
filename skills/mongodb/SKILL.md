@@ -17,7 +17,7 @@ maintainer: Bin
 
 这个 skill 提供了一组简洁的命令，用于向 MongoDB 的 `sourcing_system` 数据库插入和查询标准化数据。支持以下实体：
 
-- **signal** - 源头信号（source_type, source_id, sector, title, summary, signal_date）
+- **signal** - 源头信号（source_type, source_id, sector, title, summary）
 - **company** - 公司信息（name, sector, description）
 - **sector_ranking** - 赛道排名（周排名、理由、来源信号）
 - **ic_vote** - IC（投资委员会）投票（session, company, role, score, argument）
@@ -50,7 +50,6 @@ export MONGODB_URI="mongodb://username:password@host:port/database?authSource=ad
 - `来源ID` (source_id) - 唯一标识符（如新闻链接ID）
 - `赛道` (sector) - 行业分类（如 AI、生物科技、金融）
 - `标题` (title) - 信号标题
-- `日期` (signal_date) - 事件日期，格式 YYYY-MM-DD
 
 **可选字段：**
 - `摘要` (summary) - 详细描述

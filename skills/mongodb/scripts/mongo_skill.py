@@ -69,12 +69,12 @@ def get_collection(name: str):
 
 # ========== Signal 操作 ==========
 
+
 def insert_signal(
     source_type: str,
     source_id: str,
     sector: str,
     title: str,
-    signal_date: str,
     summary: str = None,
     metadata: Dict = None,
 ) -> str:
@@ -89,7 +89,6 @@ def insert_signal(
         "sector": sector,
         "title": title,
         "summary": summary,
-        "signal_date": signal_date,
         "metadata": metadata or {},
         "created_at": datetime.utcnow(),
         "updated_at": datetime.utcnow(),
@@ -110,7 +109,7 @@ def get_signals_by_company(company_name: str, limit: int = 20) -> List[Dict]:
     col = get_collection("signals")
     cursor = (
         col.find({"company_name": company_name})
-        .sort([("signal_date", DESCENDING), ("created_at", DESCENDING)])
+        .sort([("created_at", DESCENDING)])
         .limit(limit)
     )
     return [_serialize_doc(doc) for doc in cursor]
@@ -119,10 +118,10 @@ def get_signals_by_company(company_name: str, limit: int = 20) -> List[Dict]:
 def get_signals_by_sector(sector: str, days: int = 30, limit: int = 100) -> List[Dict]:
     """获取某赛道的近期信号（按日期降序）"""
     col = get_collection("signals")
-    cutoff_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
+    cutoff_date = datetime.now() - timedelta(days=days)
     cursor = (
-        col.find({"sector": sector, "signal_date": {"$gte": cutoff_date}})
-        .sort([("signal_date", DESCENDING), ("created_at", DESCENDING)])
+        col.find({"sector": sector, "created_at": {"$gte": cutoff_date}})
+        .sort([("created_at", DESCENDING)])
         .limit(limit)
     )
     return [_serialize_doc(doc) for doc in cursor]
@@ -136,6 +135,7 @@ def find_signal(source_type: str, source_id: str) -> Optional[Dict]:
 
 
 # ========== Company 操作 ==========
+
 
 def insert_company(
     name: str,
@@ -194,6 +194,7 @@ def update_company_status(name: str, status: str) -> bool:
 
 
 # ========== Sector Ranking 赛道排名 ==========
+
 
 def insert_sector_ranking(
     week_start: str,
@@ -262,6 +263,7 @@ def get_sector_rankings(week_start: str, sector: str = None) -> List[Dict]:
 
 # ========== IC Session & Votes 投资委员会 ==========
 
+
 def create_ic_session(week_start: str) -> str:
     """创建 IC 会话（如果已存在则返回现有 ID）"""
     col = get_collection("ic_sessions")
@@ -325,6 +327,7 @@ def get_ic_votes(session_id: str, company_name: str = None) -> List[Dict]:
 
 # ========== Weekly Ranking 最终周排名 ==========
 
+
 def insert_weekly_ranking(
     week_start: str,
     company_name: str,
@@ -348,7 +351,9 @@ def insert_weekly_ranking(
                 "final_rank": final_rank,
                 "final_score": final_score,
                 "recommendation": recommendation,
-                "action_items": json.dumps(action_items) if isinstance(action_items, list) else action_items,
+                "action_items": json.dumps(action_items)
+                if isinstance(action_items, list)
+                else action_items,
                 "updated_at": datetime.utcnow(),
             }
         },
@@ -364,7 +369,9 @@ def get_weekly_rankings(week_start: str) -> List[Dict]:
     col_wr = get_collection("weekly_rankings")
     col_c = get_collection("companies")
 
-    rankings = list(col_wr.find({"week_start": week_start}).sort("final_rank", ASCENDING))
+    rankings = list(
+        col_wr.find({"week_start": week_start}).sort("final_rank", ASCENDING)
+    )
 
     result = []
     for wr in rankings:
@@ -380,6 +387,7 @@ def get_weekly_rankings(week_start: str) -> List[Dict]:
 
 
 # ========== Manual Input 手动输入 ==========
+
 
 def insert_manual_input(
     input_type: str,
@@ -414,6 +422,7 @@ def get_manual_inputs(input_type: str = None, limit: int = 50) -> List[Dict]:
 
 
 # ========== 统计 ==========
+
 
 def count_signals(sector: str = None, days: int = None) -> int:
     """统计信号数量"""
