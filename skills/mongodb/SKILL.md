@@ -1,7 +1,7 @@
 ---
 name: mongodb
 description: 标准化的 MongoDB 数据插入 skill，支持 signal（信号）和 company（公司）数据的增删改查，以及赛道排名、IC投票和周排名管理。基于 sourcing_system 数据库。
-version: 1.0.0
+version: 1.1.0
 author: Bin
 state: stable
 enabled: true
@@ -20,21 +20,17 @@ maintainer: Bin
 - **signal** - 源头信号（source_type, source_id, sector, title, summary）
 - **company** - 公司信息（name, sector, description）
 - **sector_ranking** - 赛道排名（周排名、理由、来源信号）
-- **ic_vote** - IC（投资委员会）投票（session, company, role, score, argument）
+- **ic_vote** - IC（投资委员会）投票（session, company, role, score, argument, verdict）
 - **weekly_ranking** - 最终周排名（final_rank, final_score, recommendation）
 - **manual_input** - 手动输入记录
 
-所有操作自动连接 MongoDB（从环境变量 `MONGODB_URI` 读取），支持 upsert（存在即更新）。
-
 ## 连接配置
 
-在运行命令前，确保环境变量已设置：
+连接 URI 已在代码中预配置（AliCloud MongoDB）。如需覆盖，设置环境变量：
 
 ```bash
-export MONGODB_URI="mongodb://username:password@host:port/database?authSource=admin"
+export MONGODB_URI="mongodb://user:pass@host:port/db?authSource=admin"
 ```
-
-你的代码中默认 URI 指向 AliCloud MongoDB。如需修改，可在技能配置中覆盖。
 
 ## 命令
 
@@ -42,7 +38,7 @@ export MONGODB_URI="mongodb://username:password@host:port/database?authSource=ad
 
 **命令格式：**
 ```
-插入信号：来源类型=新闻，来源ID=news-001，赛道=AI，标题=新模型发布，日期=2026-04-15，摘要=详细内容...
+插入信号：来源类型=新闻，来源ID=news-001，赛道=AI，标题=新模型发布，摘要=详细内容...
 ```
 
 **必需字段：**
@@ -55,9 +51,11 @@ export MONGODB_URI="mongodb://username:password@host:port/database?authSource=ad
 - `摘要` (summary) - 详细描述
 - `元数据` (metadata) - JSON 格式的附加信息
 
+**Upsert 键：** `source_type` + `source_id`（存在即更新）
+
 **示例：**
 ```
-插入信号：来源类型=研报，来源ID=report-2026-04，赛道=新能源，标题=电池技术突破，日期=2026-04-14，摘要=某公司发布固态电池...
+插入信号：来源类型=研报，来源ID=report-2026-04，赛道=新能源，标题=电池技术突破，摘要=某公司发布固态电池...
 ```
 
 ### 插入公司 (company)
@@ -75,6 +73,8 @@ export MONGODB_URI="mongodb://username:password@host:port/database?authSource=ad
 - `描述` (description) - 公司简介
 - `元数据` (metadata) - JSON 附加信息
 
+**Upsert 键：** `name` + `sector`
+
 **示例：**
 ```
 插入公司：名称=深度思维，赛道=AI，描述=深度学习框架开发商
@@ -87,7 +87,7 @@ export MONGODB_URI="mongodb://username:password@host:port/database?authSource=ad
 查询公司：名称=未来智能
 ```
 
-返回公司的完整信息（包括 createdAt、updatedAt）。
+返回公司的完整信息（包括 created_at、updated_at）。
 
 ### 查询某赛道的信号
 
@@ -101,6 +101,8 @@ export MONGODB_URI="mongodb://username:password@host:port/database?authSource=ad
 - `天数` (days) - 可选，默认 30 天
 - `限制` (limit) - 可选，默认 100 条
 
+按 `created_at` 降序排列。
+
 ### 查询某公司的信号
 
 **命令格式：**
@@ -112,7 +114,7 @@ export MONGODB_URI="mongodb://username:password@host:port/database?authSource=ad
 
 **命令格式：**
 ```
-插入赛道排名：周起始=2026-04-13，赛道=AI，公司=深度思维，排名=1，理由=技术领先，来源信号=[id1,id2]
+插入赛道排名：周起始=2026-04-13，赛道=AI，公司=深度思维，排名=1，理由=技术领先，来源信号=["id1","id2"]
 ```
 
 **必需字段：**
@@ -121,7 +123,11 @@ export MONGODB_URI="mongodb://username:password@host:port/database?authSource=ad
 - `公司` (company_name)
 - `排名` (rank) - 整数
 - `理由` (rationale) - 文字说明
-- `来源信号` (source_signals) - 信号ID列表，JSON 数组
+
+**可选字段：**
+- `来源信号` (source_signals) - 信号ID列表，JSON 数组，默认 []
+
+**Upsert 键：** `week_start` + `sector` + `rank`
 
 ### 插入 IC 投票
 
@@ -138,6 +144,9 @@ export MONGODB_URI="mongodb://username:password@host:port/database?authSource=ad
 - `论点` (argument) - 评分理由
 - `结论` (verdict) - 同意/反对/保留
 
+**可选字段：**
+- `代理名` (agent_name) - 投票代理名称，默认 "unknown"
+
 ### 插入周排名
 
 **命令格式：**
@@ -151,7 +160,11 @@ export MONGODB_URI="mongodb://username:password@host:port/database?authSource=ad
 - `最终排名` (final_rank)
 - `最终分数` (final_score)
 - `建议` (recommendation)
-- `行动项` (action_items) - JSON 数组
+
+**可选字段：**
+- `行动项` (action_items) - JSON 数组，默认 []
+
+**Upsert 键：** `week_start` + `company_name`
 
 ### 创建 IC 会话
 
@@ -160,7 +173,7 @@ export MONGODB_URI="mongodb://username:password@host:port/database?authSource=ad
 创建IC会话：周起始=2026-04-13
 ```
 
-返回新创建的 session ID。
+返回 session ID。如果该周已有会话，返回现有 ID。
 
 ### 获取周排名
 
@@ -188,32 +201,19 @@ export MONGODB_URI="mongodb://username:password@host:port/database?authSource=ad
 ## 错误处理
 
 - **连接失败** - 检查 `MONGODB_URI` 是否正确，网络是否可达
-- **重复键** - `insert_signal` 和 `insert_company` 使用 upsert，会更新已有记录
+- **重复键** - upsert 操作会更新已有记录，不会抛错
 - **字段缺失** - 必需字段未提供时会返回错误提示
 
 ## 示例工作流
 
 ```
 1. 插入公司：名称=深度思维，赛道=AI，描述=AGI研发
-2. 插入信号：来源类型=新闻，来源ID=technews-001，赛道=AI，标题=融资公告，日期=2026-04-15，摘要=深度思维完成B轮...
+2. 插入信号：来源类型=新闻，来源ID=technews-001，赛道=AI，标题=融资公告，摘要=深度思维完成B轮...
 3. 查询信号：赛道=AI，天数=7
 4. 插入赛道排名：周起始=2026-04-13，赛道=AI，公司=深度思维，排名=1，理由=技术突破，来源信号=[...]
 5. 创建IC会话：周起始=2026-04-13
-6. 插入IC投票：会话ID=xxx，公司=深度思维，角色=技术，评分=90，论点=...
-7. 插入周排名：周起始=2026-04-13，公司=深度思维，最终排名=1，最终分数=92...
-```
-
-## 安装依赖
-
-```bash
-pip install pymongo
-# 或
-pip install -r requirements.txt
-```
-
-requirements.txt:
-```
-pymongo>=4.0.0
+6. 插入IC投票：会话ID=xxx，公司=深度思维，角色=技术，评分=90，论点=...，结论=同意
+7. 插入周排名：周起始=2026-04-13，公司=深度思维，最终排名=1，最终分数=92，建议=重点投资，行动项=["尽调"]
 ```
 
 ## 技术细节
@@ -222,14 +222,13 @@ pymongo>=4.0.0
 - 主要集合：`signals`, `companies`, `sector_rankings`, `ic_sessions`, `ic_votes`, `weekly_rankings`, `manual_inputs`
 - 连接池：全局单例，自动重连
 - 序列化：`ObjectId` → `str`，`datetime` → ISO 8601
+- 日期时间：全部使用 `datetime.utcnow()`（BSON 原生 Date 类型）
+- 数组字段：`source_signals`、`action_items` 原生存储为 MongoDB 数组
 
 ## 注意事项
 
-1. 所有日期字段使用 `YYYY-MM-DD` 格式（信号日期）或 ISO 8601（时间戳）
-2. `source_id` 和 `name` 组合作为 upsert 的唯一键，避免重复
-3. 元数据字段（metadata）可传递任意 JSON 对象
-4. 来源信号列表（source_signals）需为 JSON 数组，如 `["id1", "id2"]`
-
----
-
-**这个 skill 已经准备好使用了。** 把它放到 `~/.openclaw/skills/mongodb/` 目录下，OpenClaw 会自动加载。需要我帮你创建目录结构并复制文件吗？或者你想先试用一下命令？
+1. 时间戳统一使用 BSON Date 类型（created_at / updated_at），周起始日期使用 `YYYY-MM-DD` 字符串
+2. `source_type` + `source_id` 作为信号的 upsert 唯一键
+3. `name` + `sector` 作为公司的 upsert 唯一键
+4. 元数据字段（metadata）可传递任意 JSON 对象
+5. 列表字段（source_signals, action_items）原生存储为 MongoDB 数组，无需 JSON 编码

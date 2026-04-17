@@ -3,7 +3,6 @@ MongoDB Skill 工具函数 - 标准化数据插入和查询
 对应 Skill: mongodb (SKILL.md)
 """
 
-import json
 import os
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
@@ -16,7 +15,7 @@ try:
 except ImportError:
     MONGODB_AVAILABLE = False
 
-# MongoDB 连接配置（从环境变量读取，Skill 中也可覆盖）
+# MongoDB 连接配置（从环境变量读取，代码默认指向 AliCloud MongoDB）
 MONGODB_URI = os.getenv(
     "MONGODB_URI",
     "mongodb://intern:wpLPXeCwYEBNb2Dr67Wy@dds-wz9ee8fe60b30e34-pub.mongodb.rds.aliyuncs.com:3717/sourcing_system?authSource=admin",
@@ -79,49 +78,54 @@ def insert_signal(
     metadata: Dict = None,
 ) -> str:
     """
-    插入或更新信号（upsert）
+    插入或更新信号（upsert by source_type + source_id）
     返回：_id 字符串
     """
     col = get_collection("signals")
-    doc = {
-        "source_type": source_type,
-        "source_id": source_id,
-        "sector": sector,
-        "title": title,
-        "summary": summary,
-        "metadata": metadata or {},
-        "created_at": datetime.utcnow(),
-        "updated_at": datetime.utcnow(),
-    }
+    now = datetime.utcnow()
+
     result = col.update_one(
-        {"source_type": source_type, "source_id": source_id}, {"$set": doc}, upsert=True
+        {"source_type": source_type, "source_id": source_id},
+        {
+            "$set": {
+                "source_type": source_type,
+                "source_id": source_id,
+                "sector": sector,
+                "title": title,
+                "summary": summary,
+                "metadata": metadata or {},
+                "updated_at": now,
+            },
+            "$setOnInsert": {
+                "created_at": now,
+            },
+        },
+        upsert=True,
     )
-    # upsert 时，如果插入新文档，result.upserted_id 存在；如果是更新，matched_count > 0
     if result.upserted_id:
         return str(result.upserted_id)
-    # 更新模式下，查询返回 _id
     existing = col.find_one({"source_type": source_type, "source_id": source_id})
     return str(existing["_id"]) if existing else None
 
 
 def get_signals_by_company(company_name: str, limit: int = 20) -> List[Dict]:
-    """获取某公司的所有信号（按日期降序）"""
+    """获取某公司的所有信号（按创建时间降序）"""
     col = get_collection("signals")
     cursor = (
         col.find({"company_name": company_name})
-        .sort([("created_at", DESCENDING)])
+        .sort("created_at", DESCENDING)
         .limit(limit)
     )
     return [_serialize_doc(doc) for doc in cursor]
 
 
 def get_signals_by_sector(sector: str, days: int = 30, limit: int = 100) -> List[Dict]:
-    """获取某赛道的近期信号（按日期降序）"""
+    """获取某赛道的近期信号（按创建时间降序）"""
     col = get_collection("signals")
-    cutoff_date = datetime.now() - timedelta(days=days)
+    cutoff = datetime.utcnow() - timedelta(days=days)
     cursor = (
-        col.find({"sector": sector, "created_at": {"$gte": cutoff_date}})
-        .sort([("created_at", DESCENDING)])
+        col.find({"sector": sector, "created_at": {"$gte": cutoff}})
+        .sort("created_at", DESCENDING)
         .limit(limit)
     )
     return [_serialize_doc(doc) for doc in cursor]
@@ -144,20 +148,27 @@ def insert_company(
     metadata: Dict = None,
 ) -> str:
     """
-    插入或更新公司（upsert）
+    插入或更新公司（upsert by name + sector）
     返回：_id 字符串
     """
     col = get_collection("companies")
-    doc = {
-        "name": name,
-        "sector": sector,
-        "description": description,
-        "metadata": metadata or {},
-        "created_at": datetime.utcnow(),
-        "updated_at": datetime.utcnow(),
-    }
+    now = datetime.utcnow()
+
     result = col.update_one(
-        {"name": name, "sector": sector}, {"$set": doc}, upsert=True
+        {"name": name, "sector": sector},
+        {
+            "$set": {
+                "name": name,
+                "sector": sector,
+                "description": description,
+                "metadata": metadata or {},
+                "updated_at": now,
+            },
+            "$setOnInsert": {
+                "created_at": now,
+            },
+        },
+        upsert=True,
     )
     if result.upserted_id:
         return str(result.upserted_id)
@@ -202,18 +213,15 @@ def insert_sector_ranking(
     company_name: str,
     rank: int,
     rationale: str,
-    source_signals: List,
+    source_signals: List = None,
 ) -> None:
     """
-    插入或更新赛道周排名（upsert）
+    插入或更新赛道周排名（upsert by week_start + sector + rank）
     week_start: 周一日期 YYYY-MM-DD
-    source_signals: 信号ID列表（可以是 str 或 List[str]）
+    source_signals: 信号ID列表，原生存储为 MongoDB 数组
     """
     col = get_collection("sector_rankings")
-
-    # 确保 source_signals 是 JSON 字符串
-    if isinstance(source_signals, list):
-        source_signals = json.dumps(source_signals)
+    now = datetime.utcnow()
 
     col.update_one(
         {"week_start": week_start, "sector": sector, "rank": rank},
@@ -221,9 +229,12 @@ def insert_sector_ranking(
             "$set": {
                 "company_name": company_name,
                 "rationale": rationale,
-                "source_signals": source_signals,
-                "updated_at": datetime.utcnow(),
-            }
+                "source_signals": source_signals or [],
+                "updated_at": now,
+            },
+            "$setOnInsert": {
+                "created_at": now,
+            },
         },
         upsert=True,
     )
@@ -274,7 +285,7 @@ def create_ic_session(week_start: str) -> str:
         {
             "week_start": week_start,
             "status": "pending",
-            "created_at": datetime.now().isoformat(),
+            "created_at": datetime.utcnow(),
         }
     )
     return str(result.inserted_id)
@@ -284,14 +295,17 @@ def insert_ic_vote(
     session_id: str,
     company_name: str,
     role: str,
-    agent_name: str,
     score: int,
     argument: str,
     verdict: str,
+    agent_name: str = "unknown",
 ) -> str:
     """
     插入 IC 投票
-    verdict: 建议结果，如 "同意"、"反对"、"保留"
+    role: 角色（技术、业务、财务等）
+    score: 评分 0-100
+    verdict: 结论（同意/反对/保留）
+    agent_name: 投票代理名称（可选，默认 unknown）
     """
     col = get_collection("ic_votes")
 
@@ -309,7 +323,7 @@ def insert_ic_vote(
             "score": score,
             "argument": argument,
             "verdict": verdict,
-            "created_at": datetime.now().isoformat(),
+            "created_at": datetime.utcnow(),
         }
     )
     return str(result.inserted_id)
@@ -334,10 +348,11 @@ def insert_weekly_ranking(
     final_rank: int,
     final_score: int,
     recommendation: str,
-    action_items: List[str],
+    action_items: List[str] = None,
 ) -> None:
-    """插入或更新最终周排名（upsert）"""
+    """插入或更新最终周排名（upsert by week_start + company_name）"""
     col = get_collection("weekly_rankings")
+    now = datetime.utcnow()
 
     # 获取 company_id
     company = get_company_by_name(company_name)
@@ -351,11 +366,12 @@ def insert_weekly_ranking(
                 "final_rank": final_rank,
                 "final_score": final_score,
                 "recommendation": recommendation,
-                "action_items": json.dumps(action_items)
-                if isinstance(action_items, list)
-                else action_items,
-                "updated_at": datetime.utcnow(),
-            }
+                "action_items": action_items or [],
+                "updated_at": now,
+            },
+            "$setOnInsert": {
+                "created_at": now,
+            },
         },
         upsert=True,
     )
@@ -397,15 +413,16 @@ def insert_manual_input(
     """
     插入手动输入记录
     input_type: "signal_override" | "company_note" | "ranking_adjustment" | "general"
+    content: 原生 dict，直接存储为 MongoDB 嵌套文档
     """
     col = get_collection("manual_inputs")
 
     result = col.insert_one(
         {
             "input_type": input_type,
-            "content": json.dumps(content) if isinstance(content, dict) else content,
+            "content": content if isinstance(content, dict) else {"raw": content},
             "created_by": created_by,
-            "created_at": datetime.now().isoformat(),
+            "created_at": datetime.utcnow(),
         }
     )
     return str(result.inserted_id)
@@ -431,8 +448,8 @@ def count_signals(sector: str = None, days: int = None) -> int:
     if sector:
         query["sector"] = sector
     if days:
-        cutoff = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
-        query["signal_date"] = {"$gte": cutoff}
+        cutoff = datetime.utcnow() - timedelta(days=days)
+        query["created_at"] = {"$gte": cutoff}
     return col.count_documents(query)
 
 
@@ -449,12 +466,17 @@ def count_companies(sector: str = None) -> int:
 
 if __name__ == "__main__":
     print("MongoDB Skill 工具函数测试")
-    print(f"默认 URI: {MONGODB_URI}")
+    print(f"默认 URI: {MONGODB_URI[:30]}...")
     print(f"pymongo 可用: {MONGODB_AVAILABLE}")
 
     try:
         db = get_db()
         print(f"已连接数据库: {db.name}")
         print(f"集合列表: {db.list_collection_names()}")
+        print()
+
+        # 统计
+        print(f"信号总数: {count_signals()}")
+        print(f"公司总数: {count_companies()}")
     except Exception as e:
         print(f"连接失败: {e}")
