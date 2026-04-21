@@ -1,7 +1,7 @@
 ---
 name: mongodb
-description: 单一 MongoDB skill，当前仅支持 signals 和 companies 两个 collection。内部按 collection profile 分层，但外部仍然只需安装和使用这一个 skill。
-version: 2.2.0
+description: 单一 MongoDB skill，内部按 collection profile 分层，对外只需安装和使用这一个 skill。
+version: 3.0.0
 author: Bin
 state: stable
 enabled: true
@@ -15,48 +15,110 @@ maintainer: Bin
 
 # MongoDB Skill
 
-这是一个单一 MongoDB skill。
+单一 MongoDB skill，内部按 collection 分层：每个 collection 独立一个 `<name>_ops.py`，`mongo_skill.py` 只做 re-export。
 
-它内部对不同 collection 做了 profile 分层，但对外仍然只需要一个安装入口。当前支持：
+当前支持的 collection：
 
 - `signals`
 - `companies`
 
 ## 连接配置
 
-统一从环境变量读取连接信息：
+统一从环境变量读取：
 
 ```bash
 export MONGODB_URI="mongodb://user:pass@host:port/db?authSource=admin"
 ```
 
-## 支持的能力
-
-### 信号
-
-- 插入信号
-- 按 `source_type + source_id` 查询信号
-- 按赛道查询近期信号
-- 按公司查询近期信号
-
-### 公司
-
-- 插入公司
-- 查询公司
-- 查询公司列表
-- 更新公司状态
-
 ## API
 
-脚本 API 包括：
+### signals
 
-- `insert_signal`
-- `find_signal`
-- `get_signals_by_sector`
-- `get_signals_by_company`
-- `insert_company`
-- `get_company_by_name`
-- `get_all_companies`
-- `update_company_status`
+| 函数 | 说明 |
+|---|---|
+| `insert_signal(source_type, source_id, sector, title, ...)` | 写入/更新信号（幂等） |
+| `find_signal(source_type, source_id)` | 按来源查单条信号 |
+| `get_signals_by_company(company_name, limit=20)` | 按公司查近期信号 |
+| `get_signals_by_sector(sector, days=30, limit=100)` | 按赛道查近期信号 |
+| `count_signals(sector=None, days=None)` | 统计信号数量 |
 
-其中 `signals` 和 `companies` 相关逻辑走内部 profile 和共享 CRUD，外部调用方式不变。
+### companies
+
+| 函数 | 说明 |
+|---|---|
+| `insert_company(name, sector, description=None, metadata=None)` | 写入/更新公司（幂等） |
+| `get_company_by_name(name)` | 按名称查公司 |
+| `get_all_companies(sector=None, status=None)` | 列出公司（可筛选） |
+| `update_company_status(name, status)` | 更新公司状态 |
+| `count_companies(sector=None)` | 统计公司数量 |
+
+## 新增 Collection 的步骤
+
+只需要 3 步，**不需要改动任何现有文件**（除了 `mongo_skill.py` 的 re-export 块）：
+
+```
+1. profiles/<name>.json       ← 定义 schema、allowed_ops、unique_keys 等
+2. scripts/<name>_ops.py      ← collection 专属函数
+3. scripts/mongo_skill.py     ← 加一个 import 块 + __all__ 条目
+   (可选) SKILL.md            ← 补充 API 文档
+```
+
+### profiles/<name>.json 模板
+
+```json
+{
+  "skill_name": "mongodb/<name>",
+  "database": "sourcing_system",
+  "collection": "<name>",
+  "allowed_ops": ["find", "insert", "upsert", "update"],
+  "allowed_fields": ["field_a", "field_b", "metadata"],
+  "required_fields": ["field_a"],
+  "unique_keys": ["field_a"],
+  "default_sort": [["updated_at", -1]],
+  "default_limit": 50
+}
+```
+
+### scripts/<name>_ops.py 模板
+
+```python
+"""<Name> collection operations."""
+import sys
+from pathlib import Path
+
+_SCRIPT_DIR = Path(__file__).resolve().parent
+if str(_SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(_SCRIPT_DIR))
+
+from base_ops import find_many, find_one, load_profile, upsert_one
+
+_PROFILE = load_profile(_SCRIPT_DIR.parent / "profiles" / "<name>.json")
+
+
+def insert_<name>(field_a: str, ...) -> str:
+    return upsert_one(_PROFILE, {"field_a": field_a, ...})
+
+
+def get_<name>_by_field(field_a: str):
+    return find_one(_PROFILE, {"field_a": field_a})
+```
+
+## 文件结构
+
+```
+skills/mongodb/
+  SKILL.md
+  README.md
+  requirements.txt
+  profiles/
+    signals.json          ← signals collection schema
+    companies.json        ← companies collection schema
+    <name>.json           ← 新增时只加这一个文件（schema）
+  scripts/
+    client.py             ← MongoDB 连接/序列化工具
+    base_ops.py           ← profile 驱动的通用 CRUD
+    signals_ops.py        ← signals 专属函数
+    companies_ops.py      ← companies 专属函数
+    <name>_ops.py         ← 新增时只加这一个文件（函数）
+    mongo_skill.py        ← 统一 re-export 入口
+```
