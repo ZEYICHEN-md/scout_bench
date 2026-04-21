@@ -1,72 +1,133 @@
 """
-MongoDB Skill 工具函数 - 标准化数据插入和查询
-对应 Skill: mongodb (SKILL.md)
+MongoDB skill runtime.
+
+This single skill uses internal collection profiles so we keep one install
+surface while still separating collection-specific behavior in code.
 """
 
-import os
+import sys
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
-try:
-    from bson import ObjectId
-    from pymongo import ASCENDING, DESCENDING, MongoClient
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
 
-    MONGODB_AVAILABLE = True
-except ImportError:
-    MONGODB_AVAILABLE = False
-
-# MongoDB 连接配置（从环境变量读取，代码默认指向 AliCloud MongoDB）
-MONGODB_URI = os.getenv(
-    "MONGODB_URI",
-    "mongodb://intern:wpLPXeCwYEBNb2Dr67Wy@dds-wz9ee8fe60b30e34-pub.mongodb.rds.aliyuncs.com:3717/sourcing_system?authSource=admin",
+from base_ops import (
+    CollectionProfile,
+    count_documents,
+    find_many,
+    find_one,
+    load_profile,
+    update_one,
+    upsert_one,
 )
-DATABASE_NAME = "sourcing_system"
+from client import MONGODB_AVAILABLE, get_db
 
-# 全局连接
-_client = None
-_db = None
+SIGNALS_PROFILE = load_profile(
+    Path(__file__).resolve().parents[1] / "profiles" / "signals.json"
+)
+COMPANIES_PROFILE = load_profile(
+    Path(__file__).resolve().parents[1] / "profiles" / "companies.json"
+)
 
+SECTOR_RANKINGS_PROFILE = CollectionProfile(
+    skill_name="mongodb-sector-rankings-legacy",
+    database="sourcing_system",
+    collection="sector_rankings",
+    allowed_ops=("find", "upsert"),
+    allowed_fields=(
+        "week_start",
+        "sector",
+        "company_name",
+        "rank",
+        "rationale",
+        "source_signals",
+    ),
+    required_fields=("week_start", "sector", "company_name", "rank", "rationale"),
+    unique_keys=("week_start", "sector", "rank"),
+    default_sort=(("sector", 1), ("rank", 1)),
+    default_limit=100,
+)
 
-def _serialize_doc(doc: Dict) -> Dict:
-    """将 MongoDB 文档转换为可序列化的字典，_id 转为 id"""
-    if doc is None:
-        return None
-    result = {}
-    for k, v in doc.items():
-        if k == "_id":
-            result["id"] = str(v)
-        elif isinstance(v, ObjectId):
-            result[k] = str(v)
-        elif isinstance(v, datetime):
-            result[k] = v.isoformat()
-        else:
-            result[k] = v
-    if "id" not in result and "_id" not in doc:
-        result["id"] = None
-    return result
+IC_SESSIONS_PROFILE = CollectionProfile(
+    skill_name="mongodb-ic-sessions-legacy",
+    database="sourcing_system",
+    collection="ic_sessions",
+    allowed_ops=("find", "insert"),
+    allowed_fields=("week_start", "status"),
+    required_fields=("week_start",),
+    unique_keys=("week_start",),
+    default_sort=(("created_at", 1),),
+    default_limit=20,
+)
 
+IC_VOTES_PROFILE = CollectionProfile(
+    skill_name="mongodb-ic-votes-legacy",
+    database="sourcing_system",
+    collection="ic_votes",
+    allowed_ops=("find", "insert"),
+    allowed_fields=(
+        "session_id",
+        "company_id",
+        "company_name",
+        "role",
+        "agent_name",
+        "score",
+        "argument",
+        "verdict",
+    ),
+    required_fields=(
+        "session_id",
+        "company_name",
+        "role",
+        "score",
+        "argument",
+        "verdict",
+    ),
+    unique_keys=(),
+    default_sort=(("created_at", 1),),
+    default_limit=100,
+)
 
-def get_db():
-    """获取数据库连接（单例）"""
-    global _client, _db
-    if _db is not None:
-        return _db
+WEEKLY_RANKINGS_PROFILE = CollectionProfile(
+    skill_name="mongodb-weekly-rankings-legacy",
+    database="sourcing_system",
+    collection="weekly_rankings",
+    allowed_ops=("find", "upsert"),
+    allowed_fields=(
+        "week_start",
+        "company_id",
+        "company_name",
+        "final_rank",
+        "final_score",
+        "recommendation",
+        "action_items",
+    ),
+    required_fields=(
+        "week_start",
+        "company_name",
+        "final_rank",
+        "final_score",
+        "recommendation",
+    ),
+    unique_keys=("week_start", "company_name"),
+    default_sort=(("final_rank", 1),),
+    default_limit=100,
+)
 
-    if not MONGODB_AVAILABLE:
-        raise RuntimeError("pymongo 未安装，请运行: pip install pymongo")
-
-    _client = MongoClient(MONGODB_URI, serverSelectionTimeoutMS=5000)
-    _db = _client[DATABASE_NAME]
-    return _db
-
-
-def get_collection(name: str):
-    """获取集合"""
-    db = get_db()
-    return db[name]
-
-
-# ========== Signal 操作 ==========
+MANUAL_INPUTS_PROFILE = CollectionProfile(
+    skill_name="mongodb-manual-inputs-legacy",
+    database="sourcing_system",
+    collection="manual_inputs",
+    allowed_ops=("find", "insert"),
+    allowed_fields=("input_type", "content", "created_by"),
+    required_fields=("input_type", "content"),
+    unique_keys=(),
+    default_sort=(("created_at", -1),),
+    default_limit=50,
+)
 
 
 def insert_signal(
@@ -75,136 +136,92 @@ def insert_signal(
     sector: str,
     title: str,
     summary: str = None,
-    metadata: Dict = None,
+    metadata: Dict[str, Any] = None,
+    company_name: str = None,
 ) -> str:
-    """
-    插入或更新信号（upsert by source_type + source_id）
-    返回：_id 字符串
-    """
-    col = get_collection("signals")
-    now = datetime.utcnow()
-
-    result = col.update_one(
-        {"source_type": source_type, "source_id": source_id},
+    """Compatibility wrapper for signal upsert."""
+    return upsert_one(
+        SIGNALS_PROFILE,
         {
-            "$set": {
-                "source_type": source_type,
-                "source_id": source_id,
-                "sector": sector,
-                "title": title,
-                "summary": summary,
-                "metadata": metadata or {},
-                "updated_at": now,
-            },
-            "$setOnInsert": {
-                "created_at": now,
-            },
+            "source_type": source_type,
+            "source_id": source_id,
+            "company_name": company_name,
+            "sector": sector,
+            "title": title,
+            "summary": summary,
+            "metadata": metadata or {},
         },
-        upsert=True,
     )
-    if result.upserted_id:
-        return str(result.upserted_id)
-    existing = col.find_one({"source_type": source_type, "source_id": source_id})
-    return str(existing["_id"]) if existing else None
 
 
-def get_signals_by_company(company_name: str, limit: int = 20) -> List[Dict]:
-    """获取某公司的所有信号（按创建时间降序）"""
-    col = get_collection("signals")
-    cursor = (
-        col.find({"company_name": company_name})
-        .sort("created_at", DESCENDING)
-        .limit(limit)
-    )
-    return [_serialize_doc(doc) for doc in cursor]
+def get_signals_by_company(company_name: str, limit: int = 20) -> List[Dict[str, Any]]:
+    """Get recent signals for one company."""
+    return find_many(SIGNALS_PROFILE, {"company_name": company_name}, limit=limit)
 
 
-def get_signals_by_sector(sector: str, days: int = 30, limit: int = 100) -> List[Dict]:
-    """获取某赛道的近期信号（按创建时间降序）"""
-    col = get_collection("signals")
+def get_signals_by_sector(
+    sector: str,
+    days: int = 30,
+    limit: int = 100,
+) -> List[Dict[str, Any]]:
+    """Get recent signals for one sector."""
     cutoff = datetime.utcnow() - timedelta(days=days)
-    cursor = (
-        col.find({"sector": sector, "created_at": {"$gte": cutoff}})
-        .sort("created_at", DESCENDING)
-        .limit(limit)
+    return find_many(
+        SIGNALS_PROFILE,
+        {"sector": sector, "created_at": {"$gte": cutoff}},
+        limit=limit,
     )
-    return [_serialize_doc(doc) for doc in cursor]
 
 
-def find_signal(source_type: str, source_id: str) -> Optional[Dict]:
-    """根据 source_type + source_id 精确查找信号"""
-    col = get_collection("signals")
-    doc = col.find_one({"source_type": source_type, "source_id": source_id})
-    return _serialize_doc(doc)
-
-
-# ========== Company 操作 ==========
+def find_signal(source_type: str, source_id: str) -> Optional[Dict[str, Any]]:
+    """Find a single signal by source_type + source_id."""
+    return find_one(
+        SIGNALS_PROFILE,
+        {"source_type": source_type, "source_id": source_id},
+    )
 
 
 def insert_company(
     name: str,
     sector: str,
     description: str = None,
-    metadata: Dict = None,
+    metadata: Dict[str, Any] = None,
 ) -> str:
-    """
-    插入或更新公司（upsert by name + sector）
-    返回：_id 字符串
-    """
-    col = get_collection("companies")
-    now = datetime.utcnow()
-
-    result = col.update_one(
-        {"name": name, "sector": sector},
+    """Compatibility wrapper for company upsert."""
+    return upsert_one(
+        COMPANIES_PROFILE,
         {
-            "$set": {
-                "name": name,
-                "sector": sector,
-                "description": description,
-                "metadata": metadata or {},
-                "updated_at": now,
-            },
-            "$setOnInsert": {
-                "created_at": now,
-            },
+            "name": name,
+            "sector": sector,
+            "description": description,
+            "metadata": metadata or {},
         },
-        upsert=True,
     )
-    if result.upserted_id:
-        return str(result.upserted_id)
-    existing = col.find_one({"name": name, "sector": sector})
-    return str(existing["_id"]) if existing else None
 
 
-def get_company_by_name(name: str) -> Optional[Dict]:
-    """根据公司名称查找（不区分 sector）"""
-    col = get_collection("companies")
-    doc = col.find_one({"name": name})
-    return _serialize_doc(doc) if doc else None
+def get_company_by_name(name: str) -> Optional[Dict[str, Any]]:
+    """Find the most recently updated company document by name."""
+    results = find_many(COMPANIES_PROFILE, {"name": name}, limit=1)
+    return results[0] if results else None
 
 
-def get_all_companies(sector: str = None, status: str = None) -> List[Dict]:
-    """获取所有公司（可过滤赛道或状态）"""
-    col = get_collection("companies")
-    query = {}
+def get_all_companies(
+    sector: str = None,
+    status: str = None,
+) -> List[Dict[str, Any]]:
+    """List companies with optional sector and status filters."""
+    query: Dict[str, Any] = {}
     if sector:
         query["sector"] = sector
     if status:
         query["status"] = status
-    cursor = col.find(query).sort("updated_at", DESCENDING)
-    return [_serialize_doc(doc) for doc in cursor]
+    return find_many(COMPANIES_PROFILE, query)
 
 
 def update_company_status(name: str, status: str) -> bool:
-    """更新公司状态（如：active, inactive, under_review）"""
-    col = get_collection("companies")
-    result = col.update_one(
-        {"name": name}, {"$set": {"status": status, "updated_at": datetime.utcnow()}}
-    )
-    return result.modified_count > 0
-
-
-# ========== Sector Ranking 赛道排名 ==========
+    """Update company status by name across matching sector variants."""
+    doc = update_one(COMPANIES_PROFILE, {"name": name}, {"status": status})
+    return doc is not None
 
 
 def insert_sector_ranking(
@@ -213,75 +230,44 @@ def insert_sector_ranking(
     company_name: str,
     rank: int,
     rationale: str,
-    source_signals: List = None,
-) -> None:
-    """
-    插入或更新赛道周排名（upsert by week_start + sector + rank）
-    week_start: 周一日期 YYYY-MM-DD
-    source_signals: 信号ID列表，原生存储为 MongoDB 数组
-    """
-    col = get_collection("sector_rankings")
-    now = datetime.utcnow()
-
-    col.update_one(
-        {"week_start": week_start, "sector": sector, "rank": rank},
+    source_signals: List[str] = None,
+) -> str:
+    """Insert or update one sector ranking document."""
+    return upsert_one(
+        SECTOR_RANKINGS_PROFILE,
         {
-            "$set": {
-                "company_name": company_name,
-                "rationale": rationale,
-                "source_signals": source_signals or [],
-                "updated_at": now,
-            },
-            "$setOnInsert": {
-                "created_at": now,
-            },
+            "week_start": week_start,
+            "sector": sector,
+            "company_name": company_name,
+            "rank": rank,
+            "rationale": rationale,
+            "source_signals": source_signals or [],
         },
-        upsert=True,
     )
 
 
-def get_sector_rankings(week_start: str, sector: str = None) -> List[Dict]:
-    """
-    获取某周（或某周某赛道）的排名
-    返回：关联了公司信息的排名列表（按 sector, rank 排序）
-    """
-    col_sr = get_collection("sector_rankings")
-    col_c = get_collection("companies")
-
-    query = {"week_start": week_start}
+def get_sector_rankings(week_start: str, sector: str = None) -> List[Dict[str, Any]]:
+    """Get sector rankings, optionally narrowed to a single sector."""
+    query: Dict[str, Any] = {"week_start": week_start}
     if sector:
         query["sector"] = sector
-
-    sort_fields = (
-        [("sector", ASCENDING), ("rank", ASCENDING)]
-        if not sector
-        else [("rank", ASCENDING)]
-    )
-    rankings = list(col_sr.find(query).sort(sort_fields))
-
-    result = []
-    for sr in rankings:
-        cname = sr.get("company_name")
-        company = col_c.find_one({"name": cname}) if cname else None
-        doc = _serialize_doc(sr)
-        if company:
-            doc["company_description"] = company.get("description")
-            doc["company_sector"] = company.get("sector")
-        result.append(doc)
-
-    return result
-
-
-# ========== IC Session & Votes 投资委员会 ==========
+        return find_many(
+            SECTOR_RANKINGS_PROFILE,
+            query,
+            sort=(("rank", 1),),
+            limit=SECTOR_RANKINGS_PROFILE.default_limit,
+        )
+    return find_many(SECTOR_RANKINGS_PROFILE, query)
 
 
 def create_ic_session(week_start: str) -> str:
-    """创建 IC 会话（如果已存在则返回现有 ID）"""
-    col = get_collection("ic_sessions")
-    existing = col.find_one({"week_start": week_start})
+    """Create a session if missing, otherwise return the existing id."""
+    existing = find_one(IC_SESSIONS_PROFILE, {"week_start": week_start})
     if existing:
-        return str(existing["_id"])
-    result = col.insert_one(
+        return existing["id"]
+
+    db = get_db(IC_SESSIONS_PROFILE.database)
+    result = db[IC_SESSIONS_PROFILE.collection].insert_one(
         {
             "week_start": week_start,
             "status": "pending",
@@ -300,20 +286,13 @@ def insert_ic_vote(
     verdict: str,
     agent_name: str = "unknown",
 ) -> str:
-    """
-    插入 IC 投票
-    role: 角色（技术、业务、财务等）
-    score: 评分 0-100
-    verdict: 结论（同意/反对/保留）
-    agent_name: 投票代理名称（可选，默认 unknown）
-    """
-    col = get_collection("ic_votes")
-
-    # 获取 company_id
+    """Insert one IC vote."""
     company = get_company_by_name(company_name)
     company_id = company.get("id") if company else None
+    now = datetime.utcnow()
 
-    result = col.insert_one(
+    db = get_db(IC_VOTES_PROFILE.database)
+    result = db[IC_VOTES_PROFILE.collection].insert_one(
         {
             "session_id": session_id,
             "company_id": company_id,
@@ -323,23 +302,19 @@ def insert_ic_vote(
             "score": score,
             "argument": argument,
             "verdict": verdict,
-            "created_at": datetime.utcnow(),
+            "created_at": now,
+            "updated_at": now,
         }
     )
     return str(result.inserted_id)
 
 
-def get_ic_votes(session_id: str, company_name: str = None) -> List[Dict]:
-    """获取 IC 投票记录"""
-    col = get_collection("ic_votes")
-    query = {"session_id": session_id}
+def get_ic_votes(session_id: str, company_name: str = None) -> List[Dict[str, Any]]:
+    """Get IC votes for a session and optional company."""
+    query: Dict[str, Any] = {"session_id": session_id}
     if company_name:
         query["company_name"] = company_name
-    cursor = col.find(query).sort("created_at", ASCENDING)
-    return [_serialize_doc(doc) for doc in cursor]
-
-
-# ========== Weekly Ranking 最终周排名 ==========
+    return find_many(IC_VOTES_PROFILE, query)
 
 
 def insert_weekly_ranking(
@@ -349,134 +324,88 @@ def insert_weekly_ranking(
     final_score: int,
     recommendation: str,
     action_items: List[str] = None,
-) -> None:
-    """插入或更新最终周排名（upsert by week_start + company_name）"""
-    col = get_collection("weekly_rankings")
-    now = datetime.utcnow()
-
-    # 获取 company_id
+) -> str:
+    """Insert or update one weekly ranking document."""
     company = get_company_by_name(company_name)
     company_id = company.get("id") if company else None
-
-    col.update_one(
-        {"week_start": week_start, "company_name": company_name},
+    return upsert_one(
+        WEEKLY_RANKINGS_PROFILE,
         {
-            "$set": {
-                "company_id": company_id,
-                "final_rank": final_rank,
-                "final_score": final_score,
-                "recommendation": recommendation,
-                "action_items": action_items or [],
-                "updated_at": now,
-            },
-            "$setOnInsert": {
-                "created_at": now,
-            },
+            "week_start": week_start,
+            "company_id": company_id,
+            "company_name": company_name,
+            "final_rank": final_rank,
+            "final_score": final_score,
+            "recommendation": recommendation,
+            "action_items": action_items or [],
         },
-        upsert=True,
     )
 
 
-def get_weekly_rankings(week_start: str) -> List[Dict]:
-    """
-    获取某周的最终排名列表（已关联公司信息，按 rank 排序）
-    用于周报输出
-    """
-    col_wr = get_collection("weekly_rankings")
-    col_c = get_collection("companies")
-
-    rankings = list(
-        col_wr.find({"week_start": week_start}).sort("final_rank", ASCENDING)
+def get_weekly_rankings(week_start: str) -> List[Dict[str, Any]]:
+    """Get weekly rankings sorted by final rank."""
+    return find_many(
+        WEEKLY_RANKINGS_PROFILE,
+        {"week_start": week_start},
+        sort=(("final_rank", 1),),
+        limit=WEEKLY_RANKINGS_PROFILE.default_limit,
     )
-
-    result = []
-    for wr in rankings:
-        cname = wr.get("company_name")
-        company = col_c.find_one({"name": cname}) if cname else None
-        doc = _serialize_doc(wr)
-        if company:
-            doc["company_description"] = company.get("description")
-            doc["company_sector"] = company.get("sector")
-        result.append(doc)
-
-    return result
-
-
-# ========== Manual Input 手动输入 ==========
 
 
 def insert_manual_input(
     input_type: str,
-    content: Dict,
+    content: Dict[str, Any],
     created_by: str = "user",
 ) -> str:
-    """
-    插入手动输入记录
-    input_type: "signal_override" | "company_note" | "ranking_adjustment" | "general"
-    content: 原生 dict，直接存储为 MongoDB 嵌套文档
-    """
-    col = get_collection("manual_inputs")
-
-    result = col.insert_one(
+    """Insert a manual input record."""
+    now = datetime.utcnow()
+    db = get_db(MANUAL_INPUTS_PROFILE.database)
+    result = db[MANUAL_INPUTS_PROFILE.collection].insert_one(
         {
             "input_type": input_type,
             "content": content if isinstance(content, dict) else {"raw": content},
             "created_by": created_by,
-            "created_at": datetime.utcnow(),
+            "created_at": now,
+            "updated_at": now,
         }
     )
     return str(result.inserted_id)
 
 
-def get_manual_inputs(input_type: str = None, limit: int = 50) -> List[Dict]:
-    """获取手动输入记录"""
-    col = get_collection("manual_inputs")
-    query = {}
+def get_manual_inputs(input_type: str = None, limit: int = 50) -> List[Dict[str, Any]]:
+    """Get manual input records."""
+    query: Dict[str, Any] = {}
     if input_type:
         query["input_type"] = input_type
-    cursor = col.find(query).sort("created_at", DESCENDING).limit(limit)
-    return [_serialize_doc(doc) for doc in cursor]
-
-
-# ========== 统计 ==========
+    return find_many(MANUAL_INPUTS_PROFILE, query, limit=limit)
 
 
 def count_signals(sector: str = None, days: int = None) -> int:
-    """统计信号数量"""
-    col = get_collection("signals")
-    query = {}
+    """Count signals with optional filters."""
+    query: Dict[str, Any] = {}
     if sector:
         query["sector"] = sector
     if days:
-        cutoff = datetime.utcnow() - timedelta(days=days)
-        query["created_at"] = {"$gte": cutoff}
-    return col.count_documents(query)
+        query["created_at"] = {"$gte": datetime.utcnow() - timedelta(days=days)}
+    return count_documents(SIGNALS_PROFILE, query)
 
 
 def count_companies(sector: str = None) -> int:
-    """统计公司数量"""
-    col = get_collection("companies")
-    query = {}
-    if sector:
-        query["sector"] = sector
-    return col.count_documents(query)
+    """Count companies with an optional sector filter."""
+    query = {"sector": sector} if sector else {}
+    return count_documents(COMPANIES_PROFILE, query)
 
-
-# ========== 测试 ==========
 
 if __name__ == "__main__":
-    print("MongoDB Skill 工具函数测试")
-    print(f"默认 URI: {MONGODB_URI[:30]}...")
-    print(f"pymongo 可用: {MONGODB_AVAILABLE}")
+    print("MongoDB skill test")
+    print(f"pymongo available: {MONGODB_AVAILABLE}")
 
     try:
-        db = get_db()
-        print(f"已连接数据库: {db.name}")
-        print(f"集合列表: {db.list_collection_names()}")
+        db = get_db("sourcing_system")
+        print(f"connected database: {db.name}")
+        print(f"collections: {db.list_collection_names()}")
         print()
-
-        # 统计
-        print(f"信号总数: {count_signals()}")
-        print(f"公司总数: {count_companies()}")
-    except Exception as e:
-        print(f"连接失败: {e}")
+        print(f"signal count: {count_signals()}")
+        print(f"company count: {count_companies()}")
+    except Exception as exc:
+        print(f"connection failed: {exc}")

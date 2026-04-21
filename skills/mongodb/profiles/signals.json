@@ -1,0 +1,19 @@
+{
+  "skill_name": "mongodb-signals",
+  "database": "sourcing_system",
+  "collection": "signals",
+  "allowed_ops": ["find", "insert", "upsert"],
+  "allowed_fields": [
+    "source_type",
+    "source_id",
+    "company_name",
+    "sector",
+    "title",
+    "summary",
+    "metadata"
+  ],
+  "required_fields": ["source_type", "source_id", "sector", "title"],
+  "unique_keys": ["source_type", "source_id"],
+  "default_sort": [["created_at", -1]],
+  "default_limit": 50
+}
