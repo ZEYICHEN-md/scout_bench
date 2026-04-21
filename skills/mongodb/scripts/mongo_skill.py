@@ -36,6 +36,16 @@ from companies_ops import (
     update_company_status,
 )
 
+# ── wechat_articles ───────────────────────────────────────────────────────────
+from wechat_articles_ops import (
+    count_articles,
+    get_article,
+    get_articles_by_batch,
+    get_articles_by_wx_name,
+    get_articles_with_individuals,
+    upsert_article,
+)
+
 # ── add new collections above this line ───────────────────────────────────────
 
 __all__ = [
@@ -51,6 +61,13 @@ __all__ = [
     "get_all_companies",
     "update_company_status",
     "count_companies",
+    # wechat_articles
+    "upsert_article",
+    "get_article",
+    "get_articles_by_wx_name",
+    "get_articles_by_batch",
+    "get_articles_with_individuals",
+    "count_articles",
 ]
 
 

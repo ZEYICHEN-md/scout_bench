@@ -19,8 +19,11 @@ maintainer: Bin
 
 当前支持的 collection：
 
-- `signals`
-- `companies`
+| collection | database | profile |
+|---|---|---|
+| `signals` | `sourcing_system` | `profiles/signals.json` |
+| `companies` | `sourcing_system` | `profiles/companies.json` |
+| `wechat.articles` | `db1` | `profiles/wechat_articles.json` |
 
 ## 连接配置
 
@@ -51,6 +54,23 @@ export MONGODB_URI="mongodb://user:pass@host:port/db?authSource=admin"
 | `get_all_companies(sector=None, status=None)` | 列出公司（可筛选） |
 | `update_company_status(name, status)` | 更新公司状态 |
 | `count_companies(sector=None)` | 统计公司数量 |
+
+### wechat_articles（db1 / wechat.articles）
+
+| 函数 | 说明 |
+|---|---|
+| `upsert_article(source_id, wx_name, title, batch, ...)` | 写入/更新文章（幂等，`source_id` 即原始 `_id`） |
+| `get_article(source_id)` | 按 source_id 查单篇文章 |
+| `get_articles_by_wx_name(wx_name, limit=20)` | 按公众号查文章 |
+| `get_articles_by_batch(batch, limit=200)` | 按批次（YYYY-MM-DD）查文章 |
+| `get_articles_with_individuals(batch=None, limit=50)` | 查包含 individuals 提取结果的文章 |
+| `count_articles(wx_name=None, batch=None)` | 统计文章数量 |
+
+> **`individuals` 字段说明**：每篇文章携带一个人物提取数组，每条记录包含
+> `entrepreneur_name / technical_field / former_company / former_position /
+> current_company / current_position / is_chinese / is_startup /
+> is_recent_resignation / has_funding / is_tech_domain / is_strong_sign /
+> has_big_company_experience` 等布尔与文本字段。
 
 ## 新增 Collection 的步骤
 
@@ -111,14 +131,16 @@ skills/mongodb/
   README.md
   requirements.txt
   profiles/
-    signals.json          ← signals collection schema
-    companies.json        ← companies collection schema
-    <name>.json           ← 新增时只加这一个文件（schema）
+    signals.json              ← signals collection schema
+    companies.json            ← companies collection schema
+    wechat_articles.json      ← wechat.articles collection schema
+    <name>.json               ← 新增时只加这一个文件（schema）
   scripts/
-    client.py             ← MongoDB 连接/序列化工具
-    base_ops.py           ← profile 驱动的通用 CRUD
-    signals_ops.py        ← signals 专属函数
-    companies_ops.py      ← companies 专属函数
-    <name>_ops.py         ← 新增时只加这一个文件（函数）
-    mongo_skill.py        ← 统一 re-export 入口
+    client.py                 ← MongoDB 连接/序列化工具
+    base_ops.py               ← profile 驱动的通用 CRUD
+    signals_ops.py            ← signals 专属函数
+    companies_ops.py          ← companies 专属函数
+    wechat_articles_ops.py    ← wechat.articles 专属函数
+    <name>_ops.py             ← 新增时只加这一个文件（函数）
+    mongo_skill.py            ← 统一 re-export 入口
 ```
