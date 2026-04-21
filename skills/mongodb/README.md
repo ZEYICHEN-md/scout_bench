@@ -29,11 +29,6 @@ export MONGODB_URI="mongodb://user:pass@host:port/db?authSource=admin"
 
 - `signals`
 - `companies`
-- `sector_rankings`
-- `ic_sessions`
-- `ic_votes`
-- `weekly_rankings`
-- `manual_inputs`
 
 ## Notes and Structure
 

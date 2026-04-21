@@ -1,5 +1,5 @@
 {
-  "skill_name": "mongodb-signals",
+  "skill_name": "mongodb/signals",
   "database": "sourcing_system",
   "collection": "signals",
   "allowed_ops": ["find", "insert", "upsert"],

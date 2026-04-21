@@ -1,5 +1,5 @@
 {
-  "skill_name": "mongodb-companies",
+  "skill_name": "mongodb/companies",
   "database": "sourcing_system",
   "collection": "companies",
   "allowed_ops": ["find", "insert", "upsert", "update"],

@@ -1,7 +1,7 @@
 ---
 name: mongodb
-description: 单一 MongoDB skill，支持 signals、companies 以及排名和投票等 collection。内部按 collection profile 分层，但外部仍然只需安装和使用这一个 skill。
-version: 2.1.0
+description: 单一 MongoDB skill，当前仅支持 signals 和 companies 两个 collection。内部按 collection profile 分层，但外部仍然只需安装和使用这一个 skill。
+version: 2.2.0
 author: Bin
 state: stable
 enabled: true
@@ -21,11 +21,6 @@ maintainer: Bin
 
 - `signals`
 - `companies`
-- `sector_rankings`
-- `ic_sessions`
-- `ic_votes`
-- `weekly_rankings`
-- `manual_inputs`
 
 ## 连接配置
 
@@ -51,13 +46,6 @@ export MONGODB_URI="mongodb://user:pass@host:port/db?authSource=admin"
 - 查询公司列表
 - 更新公司状态
 
-### 高级集合
-
-- 赛道排名管理
-- IC 会话和投票
-- 周排名
-- 手动输入日志
-
 ## API
 
 脚本 API 包括：
@@ -70,14 +58,5 @@ export MONGODB_URI="mongodb://user:pass@host:port/db?authSource=admin"
 - `get_company_by_name`
 - `get_all_companies`
 - `update_company_status`
-- `insert_sector_ranking`
-- `get_sector_rankings`
-- `create_ic_session`
-- `insert_ic_vote`
-- `get_ic_votes`
-- `insert_weekly_ranking`
-- `get_weekly_rankings`
-- `insert_manual_input`
-- `get_manual_inputs`
 
 其中 `signals` 和 `companies` 相关逻辑走内部 profile 和共享 CRUD，外部调用方式不变。
