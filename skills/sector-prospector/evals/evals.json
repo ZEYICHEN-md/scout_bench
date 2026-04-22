@@ -1,0 +1,29 @@
+{
+  "skill_name": "sector-prospector",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "帮我挖一下智能体沙箱的项目，关于AI Agent 训练、AI Agent 运行环境这些",
+      "expected_output": "生成companies.csv，sector_theme应为'智能体沙箱'（不上升到AI Agent Infra），子赛道应在sandbox内部细分（如代码执行沙箱/浏览器沙箱/WASM沙箱/安全策略层），不应包含OpenAI/Anthropic等public hype公司，每个项目应有confidence评分和hit_queries记录",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "找一下类似 e2b 的项目，就是给AI Agent做代码执行沙箱的",
+      "expected_output": "生成companies.csv，应利用e2b作为强锚点做Round 2反向扩散（ competitors/alternatives/investors/founders），发现Daytona等直接竞品及同一VC的其他portfolio，不应只返回已知头部公司",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "挖一下具身智能里面机器人灵巧手这个细分方向",
+      "expected_output": "生成companies.csv，sector_theme应为'机器人灵巧手'（不上升到整个具身智能），子赛道应在灵巧手内部细分（如多自由度/触觉反馈/低成本方案/工业级），排除Figure AI/1X Technologies等整机厂商",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "看看AI安全里面模型对齐和红队测试这两个方向有什么早期项目",
+      "expected_output": "生成companies.csv，sector_theme应为'模型对齐与红队测试'，子赛道应包括RLHF/Constitutional AI/自动化红队/对抗测试等，发现通过开源项目和学术转化线索的早期团队",
+      "files": []
+    }
+  ]
+}

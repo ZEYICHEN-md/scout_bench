@@ -1,0 +1,62 @@
+{
+  "sector_theme": "智能体沙箱 / Agent Sandbox",
+  "analysis_summary": "当前赛道内，代码执行沙箱和浏览器沙箱是主流方向，WASM-based轻量级沙箱和策略控制层是新兴机会。市场已出现E2B、Daytona、Sprites等代表性产品，但本地优先、开源自托管和Kubernetes原生方案仍有空白。",
+  "sub_sectors": [
+    {
+      "name": "代码执行沙箱 / Code Execution Sandbox",
+      "rationale": "让LLM Agent安全执行Python/JS等代码，是sandbox最成熟的应用场景，也是E2B、Daytona等产品的核心能力",
+      "key_concepts": ["code execution", "Python sandbox", "JS sandbox", "REPL", "microVM", "Firecracker"],
+      "search_queries": [
+        "code execution sandbox startup",
+        "Python sandbox for LLM agents",
+        "secure code runner startup"
+      ]
+    },
+    {
+      "name": "浏览器沙箱 / Browser Sandbox",
+      "rationale": "让Agent在隔离浏览器环境中操作网页，与web automation和RPA赛道交叉，Firecrawl Browser Sandbox是代表性产品",
+      "key_concepts": ["browser automation", "headless browser", "web agent", "playwright sandbox", "browser isolation"],
+      "search_queries": [
+        "browser sandbox for AI agents",
+        "headless browser automation startup",
+        "web agent execution environment"
+      ]
+    },
+    {
+      "name": "WASM轻量级沙箱 / WASM Runtime",
+      "rationale": "用WebAssembly实现毫秒级启动的轻量级沙箱，适合高频调用和边缘部署场景，Cloudflare Dynamic Workers是代表",
+      "key_concepts": ["WebAssembly", "WASM runtime", "lightweight sandbox", "fast sandbox", "edge sandbox"],
+      "search_queries": [
+        "WASM sandbox startup",
+        "WebAssembly runtime for agents",
+        "lightweight code execution WASM"
+      ]
+    },
+    {
+      "name": "安全策略与隔离 / Security Policy Layer",
+      "rationale": "在沙箱之上叠加策略控制（权限管理、行为审计、数据隔离），企业客户刚需，ARMO等厂商正在布局",
+      "key_concepts": ["sandbox policy", "permission control", "behavior audit", "data isolation", "gVisor", "Kata Containers"],
+      "search_queries": [
+        "sandbox security policy startup",
+        "agent permission control platform",
+        "AI agent behavior audit"
+      ]
+    },
+    {
+      "name": "持久化Agent运行时 / Persistent Agent Runtime",
+      "rationale": "从ephemeral沙箱向有状态、可checkpoint的Agent运行时演进，Sprites和Fly.io提出persistent state概念",
+      "key_concepts": ["persistent sandbox", "agent checkpoint", "stateful runtime", "agent computer use", "virtual desktop"],
+      "search_queries": [
+        "persistent agent runtime startup",
+        "agent checkpoint sandbox",
+        "computer use agent environment"
+      ]
+    }
+  ],
+  "user_inputs_applied": {
+    "key_concepts_used": ["sandbox", "agent training", "agent runtime", "code execution", "browser sandbox", "WASM runtime"],
+    "reference_companies_analyzed": ["e2b", "Daytona"],
+    "excluded_areas_skipped": ["静态代码分析", "云厂商自带沙箱"]
+  },
+  "timestamp": "2026-04-22T10:15:00Z"
+}

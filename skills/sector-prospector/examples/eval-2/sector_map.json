@@ -1,0 +1,32 @@
+{
+  "sector_theme": "智能体沙箱 / Agent Sandbox",
+  "analysis_summary": "代码执行沙箱是最成熟的细分方向，e2b是头部标杆；浏览器沙箱和WASM轻量级沙箱是新兴机会。",
+  "sub_sectors": [
+    {
+      "name": "代码执行沙箱 / Code Execution Sandbox",
+      "rationale": "让LLM Agent安全执行Python/JS等代码，是sandbox最成熟的应用场景，e2b、Daytona等已验证市场需求",
+      "key_concepts": ["code execution", "Python sandbox", "JS sandbox", "microVM", "Firecracker"],
+      "search_queries": [
+        "code execution sandbox startup",
+        "e2b alternatives competitors",
+        "secure code runner startup"
+      ]
+    },
+    {
+      "name": "浏览器沙箱 / Browser Sandbox",
+      "rationale": "让Agent在隔离浏览器环境中操作网页，与RPA和web automation赛道交叉，适合数据抓取和网页自动化场景",
+      "key_concepts": ["browser automation", "headless browser", "web agent", "playwright sandbox"],
+      "search_queries": [
+        "browser sandbox for AI agents",
+        "headless browser automation startup",
+        "web agent execution environment"
+      ]
+    }
+  ],
+  "user_inputs_applied": {
+    "key_concepts_used": ["code sandbox", "browser sandbox"],
+    "reference_companies_analyzed": ["e2b"],
+    "excluded_areas_skipped": ["静态代码分析", "云厂商自带沙箱"]
+  },
+  "timestamp": "2026-04-22T12:10:00Z"
+}

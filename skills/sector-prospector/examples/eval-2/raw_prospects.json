@@ -1,0 +1,273 @@
+{
+  "sector_theme": "智能体沙箱 / Agent Sandbox",
+  "sub_sector": "代码执行沙箱 / Code Execution Sandbox",
+  "prospects": [
+    {
+      "company_name": "Daytona",
+      "website": "https://daytona.io",
+      "funding_stage": "unknown",
+      "founders": "",
+      "differentiation": "Open-source secure infrastructure for AI-generated code, sub-90ms sandbox provisioning",
+      "confidence": "high",
+      "hit_queries": [
+        "daytona",
+        "e2b alt",
+        "startup",
+        "early",
+        "modal"
+      ],
+      "source_query": "Daytona code sandbox competitors",
+      "source_engine": "tavily",
+      "source_url": "",
+      "sub_sector": "代码执行沙箱 / Code Execution Sandbox",
+      "discovered_at": "2026-04-22T12:30:00Z"
+    },
+    {
+      "company_name": "Modal",
+      "website": "https://modal.com",
+      "funding_stage": "Series A+",
+      "founders": "",
+      "differentiation": "Serverless platform with gVisor-based sandbox isolation, Python-first, GPU support",
+      "confidence": "high",
+      "hit_queries": [
+        "daytona",
+        "e2b alt",
+        "startup",
+        "modal"
+      ],
+      "source_query": "code execution sandbox startup",
+      "source_engine": "tavily",
+      "source_url": "",
+      "sub_sector": "代码执行沙箱 / Code Execution Sandbox",
+      "discovered_at": "2026-04-22T12:30:00Z"
+    },
+    {
+      "company_name": "Runloop",
+      "website": "https://runloop.ai",
+      "funding_stage": "Seed/Series A",
+      "founders": "",
+      "differentiation": "Enterprise devbox infrastructure for AI coding agents, SOC 2 compliant, 10k+ parallel instances",
+      "confidence": "high",
+      "hit_queries": [
+        "daytona",
+        "e2b alt",
+        "modal",
+        "runloop"
+      ],
+      "source_query": "Runloop Blaxel sandbox code execution startup",
+      "source_engine": "tavily",
+      "source_url": "",
+      "sub_sector": "代码执行沙箱 / Code Execution Sandbox",
+      "discovered_at": "2026-04-22T12:30:00Z"
+    },
+    {
+      "company_name": "Blaxel",
+      "website": "https://blaxel.ai",
+      "funding_stage": "unknown",
+      "founders": "",
+      "differentiation": "Perpetual sandbox platform with sub-25ms resume from standby, microVM isolation",
+      "confidence": "high",
+      "hit_queries": [
+        "daytona",
+        "e2b alt",
+        "startup",
+        "modal",
+        "runloop"
+      ],
+      "source_query": "Runloop Blaxel sandbox code execution startup",
+      "source_engine": "tavily",
+      "source_url": "",
+      "sub_sector": "代码执行沙箱 / Code Execution Sandbox",
+      "discovered_at": "2026-04-22T12:30:00Z"
+    },
+    {
+      "company_name": "Hopx",
+      "website": "https://hopx.ai",
+      "funding_stage": "unknown",
+      "founders": "",
+      "differentiation": "Secure sandboxes for AI agents with ~100ms startup using Firecracker microVMs",
+      "confidence": "high",
+      "hit_queries": [
+        "startup",
+        "early"
+      ],
+      "source_query": "Microsandbox Hopx AgentRunBox Cerver sandbox startup",
+      "source_engine": "tavily",
+      "source_url": "",
+      "sub_sector": "代码执行沙箱 / Code Execution Sandbox",
+      "discovered_at": "2026-04-22T12:30:00Z"
+    },
+    {
+      "company_name": "AgentRunBox",
+      "website": "https://agentrunbox.com",
+      "funding_stage": "unknown",
+      "founders": "",
+      "differentiation": "Pure JavaScript sandbox for AI agents, sub-50ms cold start, V8 isolate-based",
+      "confidence": "high",
+      "hit_queries": [
+        "startup",
+        "early"
+      ],
+      "source_query": "Microsandbox Hopx AgentRunBox Cerver sandbox startup",
+      "source_engine": "exa",
+      "source_url": "",
+      "sub_sector": "代码执行沙箱 / Code Execution Sandbox",
+      "discovered_at": "2026-04-22T12:30:00Z"
+    },
+    {
+      "company_name": "Microsandbox",
+      "website": "https://docs.microsandbox.dev",
+      "funding_stage": "unknown",
+      "founders": "",
+      "differentiation": "Open-source local microVM sandboxes with hardware isolation, sub-200ms startup",
+      "confidence": "high",
+      "hit_queries": [
+        "daytona",
+        "e2b alt",
+        "startup",
+        "early"
+      ],
+      "source_query": "Microsandbox Hopx AgentRunBox Cerver sandbox startup",
+      "source_engine": "exa",
+      "source_url": "",
+      "sub_sector": "代码执行沙箱 / Code Execution Sandbox",
+      "discovered_at": "2026-04-22T12:30:00Z"
+    },
+    {
+      "company_name": "Cerver",
+      "website": "https://cerver.ai",
+      "funding_stage": "unknown",
+      "founders": "",
+      "differentiation": "Code sandboxes for AI agents",
+      "confidence": "medium",
+      "hit_queries": [
+        "startup"
+      ],
+      "source_query": "Microsandbox Hopx AgentRunBox Cerver sandbox startup",
+      "source_engine": "exa",
+      "source_url": "",
+      "sub_sector": "代码执行沙箱 / Code Execution Sandbox",
+      "discovered_at": "2026-04-22T12:30:00Z"
+    },
+    {
+      "company_name": "Northflank",
+      "website": "https://northflank.com",
+      "funding_stage": "unknown",
+      "founders": "",
+      "differentiation": "Complete cloud platform with microVM sandbox isolation, BYOC, production-ready",
+      "confidence": "high",
+      "hit_queries": [
+        "daytona",
+        "e2b alt",
+        "modal"
+      ],
+      "source_query": "e2b alternatives competitors",
+      "source_engine": "tavily",
+      "source_url": "",
+      "sub_sector": "代码执行沙箱 / Code Execution Sandbox",
+      "discovered_at": "2026-04-22T12:30:00Z"
+    },
+    {
+      "company_name": "Vercel Sandbox",
+      "website": "https://vercel.com",
+      "funding_stage": "N/A (product)",
+      "founders": "",
+      "differentiation": "Short-lived sandboxed execution for web and edge workloads, Firecracker-based",
+      "confidence": "medium",
+      "hit_queries": [
+        "daytona",
+        "e2b alt",
+        "modal"
+      ],
+      "source_query": "e2b alternatives competitors",
+      "source_engine": "tavily",
+      "source_url": "",
+      "sub_sector": "代码执行沙箱 / Code Execution Sandbox",
+      "discovered_at": "2026-04-22T12:30:00Z"
+    },
+    {
+      "company_name": "Cloudflare Sandboxes",
+      "website": "https://workers.cloudflare.com",
+      "funding_stage": "N/A (product)",
+      "founders": "",
+      "differentiation": "Running untrusted code close to the edge, V8 isolates",
+      "confidence": "medium",
+      "hit_queries": [
+        "daytona",
+        "e2b alt"
+      ],
+      "source_query": "e2b alternatives competitors",
+      "source_engine": "tavily",
+      "source_url": "",
+      "sub_sector": "代码执行沙箱 / Code Execution Sandbox",
+      "discovered_at": "2026-04-22T12:30:00Z"
+    },
+    {
+      "company_name": "CodeSandbox SDK",
+      "website": "https://codesandbox.io",
+      "funding_stage": "N/A (product)",
+      "founders": "",
+      "differentiation": "Embedding sandboxed dev environments inside products, container-based",
+      "confidence": "medium",
+      "hit_queries": [
+        "daytona",
+        "e2b alt",
+        "modal"
+      ],
+      "source_query": "e2b alternatives competitors",
+      "source_engine": "tavily",
+      "source_url": "",
+      "sub_sector": "代码执行沙箱 / Code Execution Sandbox",
+      "discovered_at": "2026-04-22T12:30:00Z"
+    },
+    {
+      "company_name": "SmolVM",
+      "website": "",
+      "funding_stage": "unknown",
+      "founders": "",
+      "differentiation": "Open-source Firecracker-backed microVM sandbox for AI-generated code, disposable computers",
+      "confidence": "medium",
+      "hit_queries": [
+        "startup"
+      ],
+      "source_query": "code execution sandbox startup",
+      "source_engine": "exa",
+      "source_url": "",
+      "sub_sector": "代码执行沙箱 / Code Execution Sandbox",
+      "discovered_at": "2026-04-22T12:30:00Z"
+    },
+    {
+      "company_name": "AGBCLOUD",
+      "website": "",
+      "funding_stage": "unknown",
+      "founders": "",
+      "differentiation": "AI-native cloud-based sandbox platform for autonomous software agents",
+      "confidence": "low",
+      "hit_queries": [
+        "daytona"
+      ],
+      "source_query": "Daytona code sandbox competitors",
+      "source_engine": "tavily",
+      "source_url": "",
+      "sub_sector": "代码执行沙箱 / Code Execution Sandbox",
+      "discovered_at": "2026-04-22T12:30:00Z"
+    },
+    {
+      "company_name": "Cua",
+      "website": "",
+      "funding_stage": "unknown",
+      "founders": "",
+      "differentiation": "Open-source Cua agents for computer-use automation",
+      "confidence": "low",
+      "hit_queries": [
+        "daytona"
+      ],
+      "source_query": "Daytona code sandbox competitors",
+      "source_engine": "tavily",
+      "source_url": "",
+      "sub_sector": "代码执行沙箱 / Code Execution Sandbox",
+      "discovered_at": "2026-04-22T12:30:00Z"
+    }
+  ],
+  "timestamp": "2026-04-22T12:30:00Z"
+}

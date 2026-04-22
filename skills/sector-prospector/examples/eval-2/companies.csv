@@ -1,0 +1,11 @@
+company_name,rank,score,reason,source,track,note
+Runloop,,,Enterprise devbox infrastructure for AI coding agents; SOC 2 compliant; 10k+ parallel instances,Tavily:Runloop Blaxel sandbox code execution startup,代码执行沙箱 / Code Execution Sandbox,
+Modal,,,Serverless platform with gVisor-based sandbox isolation; Python-first; GPU support,Tavily:code execution sandbox startup,代码执行沙箱 / Code Execution Sandbox,
+Daytona,,,Open-source secure infrastructure for AI-generated code; sub-90ms sandbox provisioning,Tavily:Daytona code sandbox competitors,代码执行沙箱 / Code Execution Sandbox,
+Blaxel,,,Perpetual sandbox platform with sub-25ms resume from standby; microVM isolation,Tavily:Runloop Blaxel sandbox code execution startup,代码执行沙箱 / Code Execution Sandbox,
+Microsandbox,,,Open-source local microVM sandboxes with hardware isolation; sub-200ms startup,Exa:Microsandbox Hopx AgentRunBox Cerver sandbox startup,代码执行沙箱 / Code Execution Sandbox,
+Northflank,,,Complete cloud platform with microVM sandbox isolation; BYOC; production-ready,Tavily:e2b alternatives competitors,代码执行沙箱 / Code Execution Sandbox,
+Hopx,,,Secure sandboxes for AI agents with ~100ms startup using Firecracker microVMs,Tavily:Microsandbox Hopx AgentRunBox Cerver sandbox startup,代码执行沙箱 / Code Execution Sandbox,
+AgentRunBox,,,Pure JavaScript sandbox for AI agents; sub-50ms cold start; V8 isolate-based,Exa:Microsandbox Hopx AgentRunBox Cerver sandbox startup,代码执行沙箱 / Code Execution Sandbox,
+Cerver,,,Code sandboxes for AI agents,Exa:Microsandbox Hopx AgentRunBox Cerver sandbox startup,代码执行沙箱 / Code Execution Sandbox,
+SmolVM,,,Open-source Firecracker-backed microVM sandbox for AI-generated code; disposable computers,Exa:code execution sandbox startup,代码执行沙箱 / Code Execution Sandbox,
