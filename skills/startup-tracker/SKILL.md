@@ -23,12 +23,12 @@ description: |
 Agent (你) — 编排 4 个数据源 + 去重 + 报告生成
 ├── ① 新闻搜索:  tracker.py → Tavily CLI
 ├── ② 网站监控:  tracker.py → Crawl4AI / Firecrawl
-├── ③ Twitter:   apify-ultimate-scraper skill
-├── ④ LinkedIn:  apify-ultimate-scraper skill
+├── ③ Twitter:   Agent → Apify Actor (多 Actor 自动降级)
+├── ④ LinkedIn:  Agent → Apify Actor
 └── 合并去重 → state/new_items.json → Markdown 报告
 ```
 
-关键设计决策：`tracker.py` 只处理新闻和网站；社交媒体的数据由 Agent 直接调用 Apify skill 完成。Agent 负责将 4 个数据源的结果**合并、去重、分类**后生成报告。
+关键设计决策：`tracker.py` 只处理新闻和网站（①②）；社交媒体（③④）由 Agent 直接调用 Apify Actor 完成，以便实现**多 Actor 轮询降级**——主 Actor 失败时自动尝试备选。
 
 ---
 
@@ -40,11 +40,10 @@ Agent (你) — 编排 4 个数据源 + 去重 + 报告生成
 | `crawl4ai` | 网站变更检测 | `pip install crawl4ai`（首次需下载 ~100MB 模型） | 推荐 |
 | `firecrawl` | 网站监控备选（云端API） | 仅 API key，注册 https://www.firecrawl.dev | 推荐 |
 | `@apify/mcpc` | 运行 Apify Actor | `npm install -g @apify/mcpc` | 社交媒体 |
-| `apify-ultimate-scraper` | Apify skill | 已在 `~/.claude/skills/` | 社交媒体 |
 
 **网站监控选型**：
 - Crawl4AI：免费、本地运行、无次数限制，但首次启动慢；**长期运行首选**
-- Firecrawl：云端运行、安装即走，但 500 credits 为一次性额度（用完即止）
+- Firecrawl：云端运行、安装即走，一次性免费额度用完需要付费
 
 **网站监控注意**：
 - 默认仅监控 `website` 字段指定的首页 URL，但首页变更频率低
@@ -87,8 +86,15 @@ Agent (你) — 编排 4 个数据源 + 去重 + 报告生成
     "major_keywords": ["funding","raises","raised","million","acquired","acquisition","IPO","series A","series B","series C","seed round","partnership","launch","shut down","layoff","appointed CEO","appointed CTO"]
   },
   "apify": {
-    "twitter_actor_id": "parseforge/x-com-scraper",
+    "twitter_actor_id": "kaitoeasyapi/twitter-x-data-tweet-scraper-pay-per-result-cheapest",
+    "twitter_actor_fallbacks": [
+      "parseforge/x-com-scraper",
+      "logical_scrapers/x-twitter-user-profile-tweets-scraper"
+    ],
     "linkedin_actor_id": "supreme_coder/linkedin-post",
+    "linkedin_actor_fallbacks": [
+      "apify/linkedin-post-scraper"
+    ],
     "max_tweets_per_run": 15,
     "max_linkedin_posts_per_run": 15,
     "poll_interval_sec": 5,
@@ -104,7 +110,7 @@ Agent (你) — 编排 4 个数据源 + 去重 + 报告生成
 
 ## 首次配置（config.json 不存在时）
 
-当用户首次使用时，Agent 需引导完成以下配置。**全程保持亲切语气**，像跟朋友聊天，不要用生硬指令。开头用"我来帮你配置一下"这类自然表达。
+当用户首次使用时，Agent 需引导完成以下配置。
 
 **为什么需要手动提供链接**：
 1. AI 领域同名公司极多（叫 "Nova AI" 的可能有十几家），自动搜索容易张冠李戴
@@ -144,46 +150,84 @@ Agent (你) — 编排 4 个数据源 + 去重 + 报告生成
 
 **可选参数**：`python tracker.py --days N` 可单次覆盖搜索天数，不修改配置文件。默认 14 天，常用值：1（日报）、7（周报）、14、30（月报）。
 
-### Phase 2：Twitter/X 监控
+### Phase 2：Twitter/X 监控（Agent 执行）
 
-> X（原 Twitter）反爬机制强，Apify Actor 偶尔会返回过时、过滤不完整的结果。后续会逐步推出多 Actor 池交叉验证，请耐心等待改进。
+**核心策略：多 Actor 自动降级**。X 反爬机制强，单个 Actor 经常失效。Agent 必须按以下优先级依次尝试，直到某个 Actor 返回有效结果（非空数组）或全部失败。
 
-对每个配置了 `x_handle` 的公司，使用 `run_actor.js` 调用 Actor：
+**Actor 优先级队列**（从 `config.json` 的 `apify.twitter_actor_id` 和 `apify.twitter_actor_fallbacks` 读取）：
+
+1. **主 Actor**: `kaitoeasyapi/twitter-x-data-tweet-scraper-pay-per-result-cheapest`
+2. **备选 1**: `parseforge/x-com-scraper`
+3. **备选 2**: `logical_scrapers/x-twitter-user-profile-tweets-scraper`
+
+**Agent 执行逻辑（对每家公司）**：
+
+```
+for actor_id in [主 Actor, 备选 1, 备选 2]:
+    调用 Actor
+    如果返回非空数组 → 使用该结果，跳出循环
+    如果返回空数组或失败 → 记录原因，继续下一个 Actor
+如果全部失败 → 记录警告，该公司 Twitter 数据源标记为跳过
+```
+
+**调用方式**（使用 apify-ultimate-scraper skill 或直接 MCP）：
 
 ```bash
 export APIFY_TOKEN=<token>
 node --env-file=.env <apify-skill-dir>/reference/scripts/run_actor.js \
-  --actor "parseforge/x-com-scraper" \
-  --input '{"usernames": ["<x_handle>"], "maxItems": 15}' \
+  --actor "<actor_id>" \
+  --input '<input_json>' \
   --timeout 120
 ```
 
-- `usernames` 是**数组**，不含 @
-- 备用 Actor：`logical_scrapers/x-twitter-user-profile-tweets-scraper`（参数: `{"username": ["<handle>"], "maxTweets": 15}`）
-- Actor 失败时检查 Apify Console 错误详情或切换到备用 Actor
+**不同 Actor 的输入参数差异**：
 
-**输出解析**：`id`/`url` → 唯一标识；`fullText`/`text` → 内容；`createdAt` → 发布日期(ISO)；`retweetCount`/`likeCount` → 互动量；`isRetweet`/`isQuote` → 帖子类型。
+| Actor | 用户名字段 | 数量字段 | 示例输入 |
+|-------|-----------|---------|---------|
+| `kaitoeasyapi/...` | `usernames` (数组) | `maxItems` | `{"usernames": ["<handle>"], "maxItems": 15}` |
+| `parseforge/...` | `usernames` (数组) | `maxItems` | `{"usernames": ["<handle>"], "maxItems": 15}` |
+| `logical_scrapers/...` | `username` (数组) | `maxTweets` | `{"username": ["<handle>"], "maxTweets": 15}` |
 
-### Phase 3：LinkedIn 监控
+- `usernames` / `username` 都是**数组**，元素不含 `@`
+- 如果某个 Actor 在 Apify Console 中显示持续失败，可将其从 `twitter_actor_fallbacks` 中移除
 
-对每个配置了 `linkedin_url` 的公司：
+**输出字段归一化**（不同 Actor 返回的字段名不同，统一映射到以下字段）：
+- 唯一标识：`id` / `tweetId` → `id`
+- 内容：`text` / `fullText` / `content` → `text`
+- 链接：`url` / `tweetLink` / `twitterUrl` → `url`
+- 发布时间：`createdAt` / `date` / `timestamp` → `createdAt`
+- 互动量：`likeCount` / `likes` / `favoriteCount` → `likes`; `retweetCount` / `retweets` → `retweets`
+- 是否转发：`isRetweet` / `retweeted` → `isRetweet`
+
+### Phase 3：LinkedIn 监控（Agent 执行）
+
+**核心策略：多 Actor 自动降级**。LinkedIn 反爬和登录墙更严，同样需要备选 Actor。
+
+**Actor 优先级队列**：
+
+1. **主 Actor**: `supreme_coder/linkedin-post`
+2. **备选**: `apify/linkedin-post-scraper`
+
+**Agent 执行逻辑**：与 Twitter 相同，逐个尝试直到有结果或全部失败。
 
 ```bash
 export APIFY_TOKEN=<token>
 node --env-file=.env <apify-skill-dir>/reference/scripts/run_actor.js \
-  --actor "supreme_coder/linkedin-post" \
+  --actor "<actor_id>" \
   --input '{"urls": ["<linkedin_url>"], "limit": 15}' \
   --timeout 120
 ```
 
 - 使用 `urls`（不是 `startUrls`），是字符串数组
-- **输出解析**：`urn` → 唯一标识；`text` → 内容；`timeSincePosted` → 相对时间（如 "3w"），需用 `tracker.py` 中的 `relative_time_to_date()` 转为 YYYY-MM-DD；`numLikes`/`numShares` → 互动数据
+- **输出字段归一化**：`urn`/`id`/`shareUrn` → `id`；`text`/`content`/`postText` → `text`；`timeSincePosted`/`postedAt`/`postedAtISO` → `timeSincePosted`（相对时间如 "3w" 需用 `tracker.py` 中的 `relative_time_to_date()` 转为 YYYY-MM-DD）；`numLikes`/`likes` → `likes`; `numShares`/`shares` → `shares`
 
 ** stdout 解析**：Actor 结果在 stdout 中，取最后一行以 `[` 开头的完整 JSON 数组。
 
-### Phase 4：统一去重与合并
+### Phase 4：统一去重与合并（Agent 执行）
 
-将 4 个数据源的结果合并为统一格式，写入 `state/new_items.json`：
+`tracker.py` 已完成 Phase 1（新闻+网站），结果已写入 `state/new_items.json` 的 `items` 数组。Agent 需要将 Phase 2（Twitter）和 Phase 3（LinkedIn）的结果追加合并到同一文件中。
+
+每条动态统一格式：
 
 ```json
 {
@@ -296,7 +340,7 @@ node --env-file=.env <apify-skill-dir>/reference/scripts/run_actor.js \
 
 ## 设计原则
 1. 所有配置通过对话完成，无需手动编辑文件
-2. 混合数据源：Python 脚本处理新闻/网站，Apify skill 处理社交媒体
+2. 混合数据源：Python 脚本处理新闻/网站，Agent 直接调用 Apify Actor 处理社交媒体（Twitter 支持多 Actor 自动降级）
 3. 渐进式启用：先跑基础功能，社交按需开启
 4. 通过 `state/` 目录持久化已处理项，避免重复报告
 5. 每个配置步骤都向用户确认

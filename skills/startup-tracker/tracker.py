@@ -115,9 +115,9 @@ def load_config():
             or os.environ.get(env_var)
         )
 
-    tavily_k    = _key("tavily-key", "TAVILY_API_KEY")
-    firecrawl_k = _key("firecrawl-key", "FIRECRAWL_API_KEY")
-    apify_k     = _key("apify-key", "APIFY_TOKEN")
+    TAVILY_KEY    = _key("tavily-key", "TAVILY_API_KEY")
+    FIRECRAWL_KEY = _key("firecrawl-key", "FIRECRAWL_API_KEY")
+    APIFY_KEY     = _key("apify-key", "APIFY_TOKEN")
 
     # ── Resolve monitoring days: CLI --days > config.monitor_interval_days > tavily.search_days_back > 7 ──
     monitor_days = args.days
@@ -131,9 +131,9 @@ def load_config():
 
     # Set globals for data source functions
     global TAVILY_API_KEY, FIRECRAWL_API_KEY, APIFY_TOKEN
-    TAVILY_API_KEY    = tavily_k
-    FIRECRAWL_API_KEY = firecrawl_k
-    APIFY_TOKEN       = apify_k
+    TAVILY_API_KEY    = TAVILY_KEY
+    FIRECRAWL_API_KEY = FIRECRAWL_KEY
+    APIFY_TOKEN       = APIFY_KEY
     return cfg, companies
 
 # ── API Key Validation ───────────────────────────────────────────────────────
@@ -313,23 +313,39 @@ def _month_num(name: str) -> str:
     return _MONTH_NUM.get(name.lower(), "01")
 
 def extract_date_from_content(content: str, url: str = "") -> str:
-    """Try to extract date like 'July 17, 2025' from content or URL."""
+    """Try to extract date like 'July 17, 2025' or 'Jul 17, 2025' from content or URL.
+    Only matches known month names to avoid false positives (e.g. 'The 15, 2024')."""
     if not content and not url:
         return ""
+    # Strict month matching — only full names or 3-letter abbreviations in _MONTH_NUM
+    month_pattern = "|".join(
+        sorted(set(_MONTH_NUM.keys()), key=len, reverse=True)
+    )
     m = re.search(
-        r"((?:January|February|March|April|May|June|July|August|September|October|November|December|[A-Z][a-z]{2})\s+\d{1,2},?\s+\d{4})",
-        content or "", 0
+        rf"((?:{month_pattern})\s+\d{{1,2}},?\s+\d{{4}})",
+        content or "", re.IGNORECASE
     )
     if m:
         date_str = m.group(1).replace(",", "").strip()
         parts = date_str.split()
         if len(parts) < 3:
             return ""
-        return f"{parts[2]}-{_month_num(parts[0])}-{parts[1].zfill(2)}"
+        candidate = f"{parts[2]}-{_month_num(parts[0])}-{parts[1].zfill(2)}"
+        # Validate the assembled date is real (e.g. reject Feb 30)
+        try:
+            datetime.datetime.strptime(candidate, "%Y-%m-%d")
+            return candidate
+        except ValueError:
+            return ""
     if url:
         m = re.search(r"/(\d{4})/(\d{2})/(\d{2})/", url)
         if m:
-            return f"{m.group(1)}-{m.group(2)}-{m.group(3)}"
+            candidate = f"{m.group(1)}-{m.group(2)}-{m.group(3)}"
+            try:
+                datetime.datetime.strptime(candidate, "%Y-%m-%d")
+                return candidate
+            except ValueError:
+                return ""
     return ""
 
 def is_within_days(date_str: str, days: int) -> bool:
@@ -855,14 +871,41 @@ def relative_time_to_date(time_str: str) -> str:
         return time_str
 
 
+def _build_twitter_actor_input(actor_id: str, handle: str, max_items: int) -> dict:
+    """Build input payload for different Twitter Actor types."""
+    if "logical_scrapers" in actor_id or "x-twitter-user-profile-tweets-scraper" in actor_id:
+        return {"username": [handle], "maxTweets": max_items}
+    # Default format (kaitoeasyapi, parseforge, etc.)
+    return {"usernames": [handle], "maxItems": max_items}
+
+
+def _normalize_twitter_result(r: dict) -> dict:
+    """Normalize different Twitter Actor output formats into a unified schema."""
+    return {
+        "id": r.get("id") or r.get("tweetId") or "",
+        "url": r.get("url") or r.get("tweetLink") or r.get("twitterUrl") or "",
+        "text": r.get("text") or r.get("fullText") or r.get("content") or "",
+        "createdAt": r.get("createdAt") or r.get("date") or r.get("timestamp") or "",
+        "likeCount": r.get("likeCount") or r.get("likes") or r.get("favoriteCount") or 0,
+        "retweetCount": r.get("retweetCount") or r.get("retweets") or 0,
+        "isRetweet": r.get("isRetweet") or r.get("retweeted") or False,
+    }
+
+
 def run_apify_twitter(companies: List[Dict], config: Dict) -> List[Dict]:
     if not APIFY_TOKEN:
         print("[Apify Twitter] 跳过 — 未配置 APIFY_TOKEN")
         return []
-    actor_id = config.get("apify", {}).get("twitter_actor_id", "parseforge/x-com-scraper")
-    max_items = config.get("apify", {}).get("max_tweets_per_run", 10)
-    poll_int = config.get("apify", {}).get("poll_interval_sec", 5)
-    max_poll = config.get("apify", {}).get("max_poll_sec", 120)
+    apify_cfg = config.get("apify", {})
+    primary = apify_cfg.get("twitter_actor_id", "kaitoeasyapi/twitter-x-data-tweet-scraper-pay-per-result-cheapest")
+    fallbacks = apify_cfg.get("twitter_actor_fallbacks", [
+        "parseforge/x-com-scraper",
+        "logical_scrapers/x-twitter-user-profile-tweets-scraper",
+    ])
+    actor_chain = [primary] + [a for a in fallbacks if a != primary]
+    max_items = apify_cfg.get("max_tweets_per_run", 10)
+    poll_int = apify_cfg.get("poll_interval_sec", 5)
+    max_poll = apify_cfg.get("max_poll_sec", 120)
     monitor_days = config.get("tavily", {}).get("search_days_back", 7)
     state = load_json(APIFY_STATE, {})
     items = []
@@ -873,29 +916,44 @@ def run_apify_twitter(companies: List[Dict], config: Dict) -> List[Dict]:
             continue
         name = comp["name"]
         seen_ids = set(state.get(f"{name}::twitter", []))
-        input_data = {
-            "usernames": [handle],
-            "maxItems": max_items,
-        }
-        print(f"[Apify Twitter] Fetch @{handle} ({name}) ...")
-        try:
-            results = run_apify_actor(actor_id, input_data, poll_int, max_poll)
-        except Exception as e:
-            print(f"[Apify Twitter Error] {name}: {e}")
-            continue
 
-        if not isinstance(results, list):
-            print(f"[Apify Twitter] Unexpected response type for {name}: {type(results)}")
+        results = None
+        used_actor = None
+        for actor_id in actor_chain:
+            input_data = _build_twitter_actor_input(actor_id, handle, max_items)
+            print(f"[Apify Twitter] Fetch @{handle} ({name}) via {actor_id} ...")
+            try:
+                results = run_apify_actor(actor_id, input_data, poll_int, max_poll)
+                if isinstance(results, list) and len(results) > 0:
+                    used_actor = actor_id
+                    print(f"  → Actor {actor_id} 返回 {len(results)} 条")
+                    break
+                elif isinstance(results, list) and len(results) == 0:
+                    print(f"  → Actor {actor_id} 返回 0 条，尝试下一个...")
+                    continue
+                else:
+                    print(f"  → Actor {actor_id} 返回异常格式: {type(results)}")
+                    continue
+            except Exception as e:
+                print(f"  → Actor {actor_id} 失败: {e}")
+                continue
+
+        if results is None:
+            print(f"  [Apify Twitter Error] 所有 Actor 均失败 @{handle}")
+            continue
+        if isinstance(results, list) and len(results) == 0:
+            print(f"  [Apify Twitter Warning] 所有 Actor 均返回 0 条 @{handle}")
             continue
 
         new_ids = []
         is_first_run = len(seen_ids) == 0
         for r in results[:max_items]:
-            tid = r.get("id") or r.get("url") or r.get("tweetLink") or ""
+            norm = _normalize_twitter_result(r)
+            tid = norm["id"] or norm["url"] or ""
             if not tid or tid in seen_ids:
                 continue
             if is_first_run:
-                created_at = r.get("createdAt") or r.get("date") or r.get("timestamp") or ""
+                created_at = norm["createdAt"]
                 if created_at:
                     try:
                         tweet_date = datetime.datetime.fromisoformat(created_at.replace("Z", "+00:00"))
@@ -906,9 +964,9 @@ def run_apify_twitter(companies: List[Dict], config: Dict) -> List[Dict]:
                         pass
             seen_ids.add(tid)
             new_ids.append(tid)
-            snippet = r.get("text") or r.get("fullText") or r.get("content") or ""
-            tweet_url = r.get("url") or r.get("tweetLink") or f"https://x.com/{handle}/status/{tid}"
-            pub_date = r.get("createdAt") or r.get("date") or r.get("timestamp") or ""
+            snippet = norm["text"]
+            tweet_url = norm["url"] or f"https://x.com/{handle}/status/{tid}"
+            pub_date = norm["createdAt"]
             items.append({
                 "company": name, "source": "apify_twitter",
                 "title": f"[X/Twitter Post] {name} (@{handle})",
@@ -919,22 +977,36 @@ def run_apify_twitter(companies: List[Dict], config: Dict) -> List[Dict]:
             })
         if new_ids:
             state[f"{name}::twitter"] = list(seen_ids)
-        print(f"  → {len(new_ids)} new tweets")
-
-        if len(results) == 0:
-            print(f"  [Apify Twitter Warning] @{handle} 返回 0 条结果 — 可能是账号不存在或该用户无公开推文")
+        print(f"  → 共 {len(new_ids)} 条新推文 (via {used_actor})")
 
     save_json(APIFY_STATE, state)
     return items
+
+def _normalize_linkedin_result(r: dict) -> dict:
+    """Normalize different LinkedIn Actor output formats into a unified schema."""
+    return {
+        "id": r.get("urn") or r.get("id") or r.get("shareUrn") or "",
+        "url": r.get("url") or "",
+        "text": r.get("text") or r.get("content") or r.get("postText") or "",
+        "timeSincePosted": r.get("timeSincePosted") or r.get("postedAt") or r.get("postedAtISO") or "",
+        "likes": r.get("numLikes") or r.get("likes") or 0,
+        "shares": r.get("numShares") or r.get("shares") or 0,
+    }
+
 
 def run_apify_linkedin(companies: List[Dict], config: Dict) -> List[Dict]:
     if not APIFY_TOKEN:
         print("[Apify LinkedIn] 跳过 — 未配置 APIFY_TOKEN")
         return []
-    actor_id = config.get("apify", {}).get("linkedin_actor_id", "supreme_coder/linkedin-post")
-    max_items = config.get("apify", {}).get("max_linkedin_posts_per_run", 10)
-    poll_int = config.get("apify", {}).get("poll_interval_sec", 5)
-    max_poll = config.get("apify", {}).get("max_poll_sec", 120)
+    apify_cfg = config.get("apify", {})
+    primary = apify_cfg.get("linkedin_actor_id", "supreme_coder/linkedin-post")
+    fallbacks = apify_cfg.get("linkedin_actor_fallbacks", [
+        "apify/linkedin-post-scraper",
+    ])
+    actor_chain = [primary] + [a for a in fallbacks if a != primary]
+    max_items = apify_cfg.get("max_linkedin_posts_per_run", 10)
+    poll_int = apify_cfg.get("poll_interval_sec", 5)
+    max_poll = apify_cfg.get("max_poll_sec", 120)
     monitor_days = config.get("tavily", {}).get("search_days_back", 7)
     state = load_json(APIFY_STATE, {})
     items = []
@@ -945,39 +1017,56 @@ def run_apify_linkedin(companies: List[Dict], config: Dict) -> List[Dict]:
             continue
         name = comp["name"]
         seen_ids = set(state.get(f"{name}::linkedin", []))
-        input_data = {
-            "urls": [linkedin_url],
-            "limit": max_items,
-        }
-        print(f"[Apify LinkedIn] Fetch {name} ...")
-        try:
-            results = run_apify_actor(actor_id, input_data, poll_int, max_poll)
-        except Exception as e:
-            print(f"[Apify LinkedIn Error] {name}: {e}")
-            continue
 
-        if not isinstance(results, list):
-            print(f"[Apify LinkedIn] Unexpected response type for {name}: {type(results)}")
+        results = None
+        used_actor = None
+        for actor_id in actor_chain:
+            input_data = {
+                "urls": [linkedin_url],
+                "limit": max_items,
+            }
+            print(f"[Apify LinkedIn] Fetch {name} via {actor_id} ...")
+            try:
+                results = run_apify_actor(actor_id, input_data, poll_int, max_poll)
+                if isinstance(results, list) and len(results) > 0:
+                    used_actor = actor_id
+                    print(f"  → Actor {actor_id} 返回 {len(results)} 条")
+                    break
+                elif isinstance(results, list) and len(results) == 0:
+                    print(f"  → Actor {actor_id} 返回 0 条，尝试下一个...")
+                    continue
+                else:
+                    print(f"  → Actor {actor_id} 返回异常格式: {type(results)}")
+                    continue
+            except Exception as e:
+                print(f"  → Actor {actor_id} 失败: {e}")
+                continue
+
+        if results is None:
+            print(f"  [Apify LinkedIn Error] 所有 Actor 均失败 {name}")
+            continue
+        if isinstance(results, list) and len(results) == 0:
+            print(f"  [Apify LinkedIn Warning] 所有 Actor 均返回 0 条 {name}")
             continue
 
         new_ids = []
         is_first_run = len(seen_ids) == 0
         for r in results[:max_items]:
+            norm = _normalize_linkedin_result(r)
             if is_first_run:
-                days_ago = _parse_linkedin_days(r.get("timeSincePosted", "") or r.get("postedAt", ""))
+                days_ago = _parse_linkedin_days(norm["timeSincePosted"])
                 if days_ago > monitor_days:
                     continue
-            pid = r.get("urn") or r.get("url") or r.get("shareUrn") or r.get("id") or ""
+            pid = norm["id"] or norm["url"] or ""
             if not pid or pid in seen_ids:
                 continue
             seen_ids.add(pid)
             new_ids.append(pid)
-            snippet = r.get("text") or r.get("content") or r.get("postText") or ""
-            post_url = r.get("url") or linkedin_url
-            time_since = r.get("timeSincePosted") or r.get("postedAtISO") or r.get("postedAt") or ""
+            snippet = norm["text"]
+            post_url = norm["url"] or linkedin_url
+            time_since = norm["timeSincePosted"]
             pub_date = ""
             if time_since:
-                # If it looks like a relative time, convert it
                 if re.search(r'\d+\s*[dwym]', time_since, re.I) or re.search(r'\d+[dwmoyr]', time_since.lower()) \
                    or re.match(r'\d+', time_since):
                     pub_date = relative_time_to_date(time_since)
@@ -993,7 +1082,7 @@ def run_apify_linkedin(companies: List[Dict], config: Dict) -> List[Dict]:
             })
         if new_ids:
             state[f"{name}::linkedin"] = list(seen_ids)
-        print(f"  → {len(new_ids)} new posts")
+        print(f"  → 共 {len(new_ids)} 条新帖子 (via {used_actor})")
 
     save_json(APIFY_STATE, state)
     return items
@@ -1100,8 +1189,8 @@ def main():
     print(f"  • Tavily新闻: {'✅ (并行搜索)' if status['tavily']['valid'] else '❌'}")
     print(f"  • 网站监控: {'✅ (Crawl4AI, 并行爬取)' if CRAWL4AI_AVAILABLE else '❌'}")
     print(f"  • Firecrawl: {'✅ (并行爬取)' if status['firecrawl']['configured'] else '⚪ 跳过'}")
-    print(f"  • Twitter: ⏭️  请使用 apify-ultimate-scraper skill")
-    print(f"  • LinkedIn: ⏭️  请使用 apify-ultimate-scraper skill")
+    print(f"  • Twitter: ⏭️  Agent 直接执行 (Phase 2)")
+    print(f"  • LinkedIn: ⏭️  Agent 直接执行 (Phase 3)")
     print()
 
     # ── Parallel execution of independent data sources ───────────────────────
@@ -1141,10 +1230,8 @@ def main():
     if not status['firecrawl']['configured']:
         print("[Firecrawl] 跳过 - API Key 未配置")
 
-    # 4. Twitter via Apify — DISABLED
-    #   Use apify-ultimate-scraper skill instead for Twitter/LinkedIn scraping
-    # 5. LinkedIn via Apify — DISABLED
-    #   Use apify-ultimate-scraper skill instead for Twitter/LinkedIn scraping
+    # 4. Twitter via Apify — Agent 直接执行 (see SKILL.md Phase 2)
+    # 5. LinkedIn via Apify — Agent 直接执行 (see SKILL.md Phase 3)
 
     # Console summary
     today_str = datetime.datetime.now().strftime("%Y-%m-%d")
