@@ -27,7 +27,22 @@ maintainer: Bin
 
 ## 连接配置
 
-统一从环境变量读取：
+按下面的优先级读取：
+
+1. 显式传入的 `uri`
+2. 环境变量 `MONGODB_URI`
+3. `skills/mongodb/mongodb.json`
+4. 本地 `.openclaw/mongodb.json`（兼容旧配置）
+
+当前仓库默认把共享连接写在 `skills/mongodb/mongodb.json`：
+
+```json
+{
+  "uri": "mongodb://user:pass@host:port/db?authSource=admin"
+}
+```
+
+也可以继续使用环境变量覆盖：
 
 ```bash
 export MONGODB_URI="mongodb://user:pass@host:port/db?authSource=admin"
@@ -129,6 +144,7 @@ def get_<name>_by_field(field_a: str):
 skills/mongodb/
   SKILL.md
   README.md
+  mongodb.json              ← 默认共享连接配置
   requirements.txt
   profiles/
     signals.json              ← signals collection schema

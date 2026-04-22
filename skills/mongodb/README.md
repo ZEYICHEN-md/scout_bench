@@ -12,6 +12,18 @@ pip install -r skills/mongodb/requirements.txt
 
 ## Configure
 
+Preferred shared config:
+
+```json
+{
+  "uri": "mongodb://user:pass@host:port/db?authSource=admin"
+}
+```
+
+Save that JSON to `skills/mongodb/mongodb.json`.
+
+Env var override still works:
+
 ```bash
 export MONGODB_URI="mongodb://user:pass@host:port/db?authSource=admin"
 ```
