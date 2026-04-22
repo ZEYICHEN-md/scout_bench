@@ -38,3 +38,9 @@ Skills are shared. Your setup is yours. Keeping them apart means you can update 
 ---
 
 Add whatever helps you do your job. This is your cheat sheet.
+
+### MongoDB
+
+- `skills/mongodb` 默认读取共享配置文件 `skills/mongodb/mongodb.json`
+- 当前 `sourcing_system` 连接已保存在该文件中，可直接复用，无需每次重新 `export MONGODB_URI`
+- 如果临时需要覆盖，仍可设置环境变量 `MONGODB_URI`
