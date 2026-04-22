@@ -1,0 +1,283 @@
+---
+name: weekly-recommendation
+description: |
+  创业投资尽调与华人创始人筛查管线。当用户提到「周度推荐」「工作流周度推荐」「挖一下这周工作流的项目」时，务必使用本 skill。
+  支持从网页爬取公司列表、批量筛查创始人背景、生成投资分析与 VC 评分排名。
+  自动处理断点续跑和批量并行。
+
+---
+
+## 环境配置（首次使用）
+
+### 1. API Keys
+
+**启动时自动加载**。agent 在开始任何搜索前，依次检查以下 `.env` 文件：
+
+```
+<skill-dir>/.env
+<skill-dir>/../skill_test/.env
+<当前工作目录>/.env
+~/.env
+```
+
+支持多组 key 轮换（在 `.env` 中配置主号 + `*_SECONDARY`）：
+
+```env
+TAVILY_API_KEY=tvly-dev-xxxx
+TAVILY_API_KEY_SECONDARY=tvly-dev-yyyy
+EXA_API_KEY=64bfe768-xxxx
+EXA_API_KEY_SECONDARY=27d98e7c-xxxx
+```
+
+**轮换策略**：每连续 **5 次请求**后自动切换到同一服务商的备用 key。
+
+**确认流程**：加载后向用户报告检测到的 keys，请求确认：
+
+```
+检测到以下 API Keys：
+  - Tavily: tvly-dev-xxxx（主号）+ tvly-dev-yyyy（备用）
+  - Exa: 64bfe768-xxxx（主号）+ 27d98e7c-xxxx（备用）
+轮换策略：每5次请求切换
+是否使用上述 keys 开始筛查？[Y/n]
+```
+
+**未检测到 key 时**：暂停并向用户请求 key，不继续执行搜索。
+
+### 2. LinkedIn 登录态
+
+**配置方式**（只需一次）：
+
+```bash
+agent-browser --session-name linkedin --headed open https://www.linkedin.com/login
+# ...在弹出窗口中完成登录...
+agent-browser --session-name linkedin close
+```
+
+**启动前预检查**：agent 先验证 session 是否有效（详见 `references/screening_rules.md`）。若 session 无效，跳过弱信号验证，将相关公司标记为 `UNCLEAR`，不阻塞流程。
+
+---
+
+## 工作目录结构
+
+**创建工作目录**（agent 直接执行，并记住该路径）：
+
+```bash
+export WORKSPACE="screening_$(date +%Y%m%d_%H%M%S)"
+mkdir -p "$WORKSPACE"
+echo "$WORKSPACE"
+```
+
+> **重要**：Claude 的 Bash 工具每次调用都是独立 shell。后续**每一次 Bash 调用**都必须以 `cd "$WORKSPACE"` 开头，确保所有文件（`tavily_results/`、`exa_results/`、`companies.csv` 等）都写入正确目录。
+
+**目录规范**：
+- `tavily_results/` — 阶段1/2 所有 Tavily 搜索原始 JSON
+- `exa_results/` — 阶段1/2 所有 Exa 搜索原始 JSON
+- `companies.csv` — 阶段0原始数据
+- `scrape_state.json` — 阶段0断点续爬状态
+- `chinese_screening_checkpoint.csv` — 阶段1检查点
+- `investment_analysis.md` — 阶段2投资分析
+- `final_report.md` — 完整最终报告
+
+---
+
+## 整体流程
+
+```
+启动检查 → 阶段0(数据获取) → 阶段1(筛查) → 阶段2(投资分析) → 阶段3(评分) → 最终报告
+   ↓key确认       ↓写入CSV         ↑___________写入检查点CSV___________|
+```
+
+---
+
+## 启动检查清单
+
+agent 在开始筛查前必须逐项确认：
+
+```
+□ CLI 工具：tvly（tavily-cli）已安装且在 PATH 中
+□ CLI 工具：mcporter（Exa MCP）已安装且可调用
+□ CLI 工具：agent-browser 已安装且在 PATH 中
+□ API Keys：已加载 Tavily key（含备用）
+□ API Keys：已加载 Exa key（含备用）
+□ LinkedIn：session 有效（不在登录页），或已标记为无效
+□ 工作目录：已创建并后续 Bash 调用均会 cd 进入
+□ 用户已确认开始（Y/n）
+```
+
+> 若某项工具缺失，agent 报告问题并请求用户安装或提供替代方案，不盲目继续。
+
+---
+
+## 阶段0: 数据获取（网页爬取）
+
+> 支持多信源：Pitchbook、ARR 等。完成后输出 `companies.csv`。
+
+### 通用提取脚本
+
+所有 readtheone 榜单页面（Pitchbook / ARR / LinkedIn / Kickstarter 等）DOM 结构一致，使用同一脚本提取：
+
+```bash
+cd "$WORKSPACE"
+agent-browser eval --file "<skill-dir>/scripts/extract_readtheone.js"
+```
+
+> `<skill-dir>` 为 `weekly-recommendation` skill 的根目录。首次执行前请确认该路径。
+
+### 支持信源
+
+| 信源 | 目标页面 |
+|------|----------|
+| **Pitchbook** | `https://trends.readtheone.com/projects?page=1&source=Pitchbook&track=&chinese=` |
+| **ARR** | `https://trends.readtheone.com/projects?page=1&source=arr&track=&chinese=true` |
+| **LinkedIn 大厂华人离职员工** | `https://trends.readtheone.com/projects?source=Linkedin%E5%A4%A7%E5%8E%82%E5%8D%8E%E4%BA%BA%E7%A6%BB%E8%81%8C%E5%91%98%E5%B7%A5&track=&chinese=true` |
+| **Kickstarter** | `https://trends.readtheone.com/projects?source=kickstarter&track=&chinese=true` |
+
+> **详细规则**（提取脚本、各信源特殊处理、监控机制、去重写入规范）见 `references/data_source_rules.md`。
+>
+> 要点速览：
+> - ARR 信源中过度曝光/水上项目标记为 `SKIP_PUBLIC_HYPE`，不进入阶段1
+> - LinkedIn 信源为**监控型**，对比历史快照，有新增才进入后续分析
+> - Kickstarter 信源**仅爬第一页**，仅当评分 ≥ 9、众筹额 > $1M 且为 AI 原生产品时才进入阶段1，其余标记 `SKIP_KICKSTARTER_FILTER`
+> - agent 人工过滤非真实公司名（如 `AI视频广告平台` 等描述性条目）
+> - 多信源合并后按 `company_name` 去重，`source` 列合并（如 `Pitchbook|ARR`）
+
+---
+
+## 搜索工具调用规范
+
+### Tavily
+
+**首选**：`tvly search "{query}" --json --max-results 5 --depth basic`
+
+**备选**（curl）：
+
+```bash
+curl -s -X POST https://api.tavily.com/search \
+  -H "Content-Type: application/json" \
+  -d "{\"api_key\":\"$TAVILY_API_KEY\",\"query\":\"{query}\",\"max_results\":5,\"search_depth\":\"basic\",\"include_answer\":true}"
+```
+
+### Exa
+
+**首选**：`mcporter call 'exa.web_search_exa(query: "{query}", numResults: 5)'`
+
+**备选**（curl）：
+
+```bash
+curl -s -X POST https://api.exa.ai/search \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: $EXA_API_KEY" \
+  -d "{\"query\":\"{query}\",\"numResults\":5,\"useAutoprompt\":true,\"type\":\"auto\"}"
+```
+
+### 限速与错误处理
+
+| 场景 | 处理方式 |
+|------|----------|
+| 429/503 | 等 15 秒重试；同 key 连续 3 次失败后切换备用 key |
+| 401/403 | 立即切换 key |
+| 所有 key 均失败 | 标记 `UNCLEAR`，`error: "all_keys_rate_limited"` |
+| 单家公司搜索失败 | 记录 `error`，`status` 保持 `PENDING`，不阻塞整批 |
+
+### 并发
+
+- 同一批次建议 **5 家**公司并行搜索
+- 所有原始 JSON 保存到 `tavily_results/` 和 `exa_results/`
+
+---
+
+## 阶段1: 华人创始人筛查
+
+**agent 直接逐批执行**，每批约 5 家公司：
+
+1. **搜索创始团队**：对每家公司同时发起 Tavily + Exa 搜索
+2. **识别中文姓名**：依据 `references/screening_rules.md` 判定强/弱信号
+3. **领英验证**（仅弱信号）：依据 `references/screening_rules.md` 执行 browser 验证
+4. **写入检查点**：立即追加写入 `chinese_screening_checkpoint.csv`
+
+**断点续跑**：读取已有 checkpoint，跳过 `CONFIRMED` / `NOT_CHINESE`，只处理 `PENDING` / `UNCLEAR`。
+
+---
+
+## 阶段2: 投资分析
+
+**仅对 `CONFIRMED` 状态的公司执行。**
+
+agent 按 `references/investment_analysis_template.md` 模板撰写：
+
+1. **优先复用**阶段1的搜索 JSON
+2. **缺口补充搜索**（标准信源必须覆盖 `references/vc_scoring.md` 所需的全部五个维度）：
+   - **Team**：创始人完整履历、学术/工业背景、过往退出记录
+   - **Market**：赛道 TAM、增速、竞争格局、政策环境
+   - **Moat**：技术壁垒、专利、开源生态、数据网络效应
+   - **Traction**：商业化数据（ARR/客户合同/部署量/benchmark 排名）
+   - **CapEff**：估值、领投方知名度、融资历史
+3. 追加写入 `investment_analysis.md`（Kickstarter 项目采用简版追踪模板，不参与五维评分）
+
+> **阶段3 不再发起任何新搜索**，所有评分依据必须在阶段2收集完毕。
+
+---
+
+## 阶段3: VC 评分排序
+
+**CONFIRMED 公司正常评分；UNCLEAR 公司进入表格但不打分**；NOT_CHINESE 不进入排名表。（Kickstarter 项目不纳入 VC 评分排名表，仅在 `investment_analysis.md` 中保留简版追踪。）
+
+agent **直接基于** `investment_analysis.md` 和阶段1/2已保存的搜索 JSON 进行评分/汇总，**不发起额外搜索**。依据 `references/vc_scoring.md` 输出 Markdown 表格。
+
+### 表格结构
+
+```markdown
+| 排名 | 公司 | 总分 | Team | Market | Moat | Traction | CapEff | 评级 | 状态 | 已知信息摘要 |
+|------|------|------|------|--------|------|----------|--------|------|------|-------------|
+| 1 | Spirit AI | 8.25 | 9.0 | 9.0 | 8.0 | 7.0 | 7.0 | S | CONFIRMED | - |
+| - | Patlytics | - | - | - | - | - | - | - | UNCLEAR | 创始人 Paul Lee / Arthur Jen（弱信号，待 LinkedIn 验证）|
+```
+
+**UNCLEAR 公司处理**：
+- 分数和评级列全部填 `-`
+- "已知信息摘要"列基于阶段1搜索结果，用一句话总结：tagline + 创始人姓名/背景线索 + 信息缺口
+- 不占用排名序号，列在 CONFIRMED 公司之后
+
+---
+
+## 执行入口
+
+当用户要求「筛查华人创始人」「周度推荐」「Pitchbook 工作流」时：
+
+1. **启动检查**：确认 CLI 工具、API keys、LinkedIn session、工作目录
+2. **阶段0**：爬取或读取 `companies.csv`
+3. **阶段1**：批量搜索并判定华人创始人身份，写入 checkpoint
+4. **阶段2**：对 CONFIRMED 公司撰写投资分析
+5. **阶段3**：生成 VC 评分排名
+6. **最终报告**：组装 `final_report.md`
+   - 执行摘要
+   - 筛查结果摘要
+   - VC 评分排名表格（不含 Kickstarter 简版项目）
+   - `investment_analysis.md` 全文（含标准深度分析 + Kickstarter 简版追踪）
+
+> 最终报告由 agent 直接组装，不存在 `report_builder.py`。
+
+---
+
+## 错误处理
+
+| 场景 | 处理方式 |
+|------|----------|
+| 单家公司搜索失败 | 记录 `error` 字段，`status` 保持 `PENDING`，不阻塞整批 |
+| API 限速（429/503）| 等 15 秒重试；同 key 连续 3 次失败后切换备用 key |
+| API 401/403 | 立即切换 key（可能是 key 被撤销） |
+| 所有 key 均失败 | 标记该公司为 `UNCLEAR`，`error: "all_keys_rate_limited"` |
+| 无法确认华人身份 | `status` 设为 `UNCLEAR` |
+| LinkedIn session 无效 | 跳过验证，标记 `UNCLEAR`，`error: "linkedin_session_invalid"` |
+| 批量执行中断 | 下次运行时从检查点 CSV 读取状态，自动跳过已完成 |
+
+---
+
+## 参考文档
+
+| 文件 | 说明 |
+|------|------|
+| `references/data_source_rules.md` | 阶段0多信源规则：提取脚本、ARR/SKIP_PUBLIC_HYPE、LinkedIn 监控机制 |
+| `references/screening_rules.md` | 强/弱信号、排除规则、领英验证标准、状态转移 |
+| `references/vc_scoring.md` | 五维度权重、评分细则、评级定义 |
+| `references/investment_analysis_template.md` | 投资分析格式模板：公司介绍、Verdict 结构、信号标签 |
