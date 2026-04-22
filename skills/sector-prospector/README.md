@@ -1,6 +1,5 @@
 # sector-prospector
 
-
 赛道标的深度挖掘工具。从任意赛道主题出发，通过多轮垂直搜索发现早期、尚未被大众媒体广泛曝光的项目，输出可直接对接 `weekly-recommendation` 管线进行华人创始人筛查的 `companies.csv`。
 
 ---
@@ -168,7 +167,7 @@ tvly search "ex-Google ex-OpenAI code sandbox startup founded" --json --max-resu
 {
   "company_name": "Daytona",
   "website": "https://daytona.io",
-  "funding_stage": "Seed",
+  "funding_stage": "Series A ($24M)",
   "founders": "Ivan Burazin",
   "differentiation": "开源开发环境管理器，支持多语言、多基础设施的代码执行沙箱",
   "source_query": "code execution sandbox startup",
@@ -210,7 +209,7 @@ tvly search "Modal funding series valuation 2025 2026" --json --max-results 3 --
 
 - OpenAI、Anthropic、xAI -> **硬性排除**（估值 $1B+，家喻户晓）
 - Modal（$87M Series B）-> **软性标记**：保留在 CSV 中，note 标注 `"非早期，Series B+，已过种子窗口"`
-- Daytona（Seed）-> **保留**
+- Daytona（Series A，$24M）-> **保留**（仍处于早期窗口）
 
 **3. 公司信息确认搜索**
 
@@ -283,12 +282,12 @@ prospects_report.md（初筛报告，按推荐度排序）
 ```
 用户：帮我挖一下智能体沙箱的项目，关于 AI Agent 训练、AI Agent 运行环境这些
 
-Agent：
-1. 检测到赛道"智能体沙箱"够具体，直接开始
-2. 是否需要补充信息？（关键概念、参考公司、信号来源等）[可选]
-3. Phase 1：赛道解构，展示 sector_map.json 子赛道地图
-4. 用户确认后，Phase 2：逐个子赛道深度挖掘
-5. Phase 3：生成 companies.csv + prospects_report.md
+Agent（全自动流程）：
+1. 从 prompt 自动提取赛道主题和关键概念
+2. Phase 0：判断赛道粒度，够具体则直接进入 Phase 1；过宽则自动扫描并选择子赛道
+3. Phase 1：自动解构赛道，生成 sector_map.json
+4. Phase 2：逐个子赛道执行多轮垂直搜索（Anchor & Expand）
+5. Phase 3：全局去重、Public Hype 过滤、生成 companies.csv + prospects_report.md
 6. 汇报：共发现 47 个项目，S 档 3 个、A 档 12 个...
 ```
 

@@ -110,20 +110,25 @@ agent 在开始挖掘前必须逐项确认：
 
 ### 赛道引导与拆分（赛道过大时）
 
-当用户输入被判定为"太宽泛"或"偏宽泛"时，agent 必须先做全景扫描，再给出选项。
+当用户输入被判定为"太宽泛"或"偏宽泛"时，agent 自动执行全景扫描，从真实市场信号中提取结构化线索并聚类成 3-6 个子赛道选项，然后**自动选择最相关、信号最强的 1-2 个子赛道**作为挖掘起点，直接进入 Phase 1。
+
+**自动选择标准**：
+- 融资信号最强（近期集中获得种子轮的方向优先）
+- 与用户初始 prompt 语义最接近
+- 技术差异化最明确（不与其他子赛道高度重叠）
 
 **详细流程**见 `references/phase0_sector_splitting.md`。
 
 **核心原则**：不要凭知识库硬编选项，而是通过搜索从真实市场信号中**提取结构化线索，再聚类成选项**。
 
-### 直接确认（赛道已经够具体时）
+### 自动信息采集（赛道已经够具体时）
 
-agent 直接确认赛道主题，并询问是否补充以下信息（全部可选）：
-- 已知关键概念
-- 参考公司/对标项目
-- 关注的信号来源
-- 投资逻辑/角度
-- 不想看的子方向
+agent 直接从用户 prompt 中提取所有可用信息，**不主动询问**，不中断流程：
+- `key_concepts`：从 prompt 中的技术名词自动提取
+- `reference_companies`：从"类似 XX""对标 YY"等表达中识别
+- `signal_sources`、`investment_thesis`、`excluded_areas`：如 prompt 中未提及，留空即可
+
+将采集结果写入 `$WORKSPACE/user_inputs.json`，立即进入 Phase 1。
 
 ### 可采集的信息项
 
@@ -335,13 +340,13 @@ tvly search "{赛道} research prototype commercialization" --json --max-results
 当用户要求「挖掘赛道」「找某个方向的项目」「sector deal sourcing」「某某赛道的早期公司」时：
 
 1. **启动检查**：确认 CLI 工具、API keys、工作目录
-2. **Phase 0**：采集用户输入（从 prompt 提取 + 主动询问），产出 `user_inputs.json`
-3. **Phase 1**：结合用户输入执行赛道解构，产出 `sector_map.json`，**向用户展示子赛道地图并确认**（用户可增删子赛道或调整关键词）
-4. **Phase 2**：基于确认后的 sector_map 和用户输入，逐个子赛道执行深度挖掘，保存原始 JSON 和 checkpoint
+2. **Phase 0**：自动采集用户输入（从 prompt 提取，不主动询问），自动判断赛道粒度，如过宽则自动扫描并选择子赛道，产出 `user_inputs.json`
+3. **Phase 1**：结合用户输入执行赛道解构，产出 `sector_map.json`，直接进入 Phase 2
+4. **Phase 2**：基于 sector_map 和用户输入，逐个子赛道执行深度挖掘，保存原始 JSON 和 checkpoint
 5. **Phase 3**：全局去重、Public Hype 过滤、生成 `companies.csv`、`prospector_notes.json`、`prospects_report.md`
 6. **汇报**：向用户汇报挖掘结果摘要（公司总数、各子赛道分布、Top 5 项目），并告知文件路径
 
-> **关键**：Phase 0 让用户注入自己的投资视角和已有线索，Phase 1 完成后**必须**向用户展示 sector_map.json 的内容，确认或调整后再进入 Phase 2。这是为了确保挖掘方向符合用户的真实需求，而不是 agent 的通用推断。
+> **关键**：Phase 0 自动提取用户 prompt 中的投资视角和已有线索；Phase 1 完成后不中断流程，直接进入 Phase 2。整个挖掘过程从用户给出 prompt 到产出报告全自动完成，无需中途确认。
 
 ---
 
@@ -355,8 +360,6 @@ tvly search "{赛道} research prototype commercialization" --json --max-results
 | 搜索超时（无响应 >30s）| 终止当前 query，标记超时，继续下一批 |
 | 所有 key 均失败 | 暂停当前子赛道，记录 checkpoint，向用户报告 |
 | 用户未提供赛道主题 | 询问用户想挖掘哪个赛道 |
-| Phase 0 后用户取消 | 保存 user_inputs.json，优雅退出 |
-| Phase 1 后用户取消 | 保存 sector_map.json，优雅退出 |
 | 挖掘结果为空 | 检查 query 是否过窄，向用户建议扩大或调整赛道主题 |
 
 ---
