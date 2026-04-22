@@ -191,6 +191,23 @@ curl -s -X POST https://api.exa.ai/search \
 **agent 直接逐批执行**，每批约 5 家公司：
 
 1. **搜索创始团队**：对每家公司同时发起 Tavily + Exa 搜索
+
+   **Query 构造规范**：
+   - 从 `companies.csv` 的 `reason` 字段提取 **1-3 个最独特的功能/技术关键词**
+   - **去掉泛词**：AI、赋能、智能、平台、工具、系统、解决方案
+   - **保留核心词**：具体功能、技术栈、产品形态、目标领域
+   - Query 格式：`{company_name} {keyword1} {keyword2} {search_target}`
+   - Phase 1 的 `{search_target}` 每家公司轮换使用：`founder`、`CEO`、`CTO`、`co-founder`、`founding team`、`funding`
+     - `funding` 同时帮助判断公司阶段和融资背景，Phase 2 复用结果
+
+   **示例**：
+   | 公司 | reason | 提取关键词 | query |
+   |------|--------|-----------|-------|
+   | Patlytics | AI 赋能的知识产权工作流增强工具 | IP workflow | `Patlytics IP workflow founder` |
+   | Patlytics | AI 赋能的知识产权工作流增强工具 | IP workflow | `Patlytics IP workflow funding` |
+   | Mastra | 用于构建自主 AI 代理和工作流的开源 TS 框架 | TypeScript agent framework | `Mastra TypeScript agent framework CEO` |
+   | neuroClues | 通过追踪眼球数据流畅感知、诊断神经病变的智能相机 | eye tracking neurology | `neuroClues eye tracking neurology co-founder` |
+
 2. **识别中文姓名**：依据 `references/screening_rules.md` 判定强/弱信号
 3. **领英验证**（仅弱信号）：依据 `references/screening_rules.md` 执行 browser 验证
 4. **写入检查点**：立即追加写入 `chinese_screening_checkpoint.csv`
@@ -207,11 +224,19 @@ agent 按 `references/investment_analysis_template.md` 模板撰写：
 
 1. **优先复用**阶段1的搜索 JSON
 2. **缺口补充搜索**（标准信源必须覆盖 `references/vc_scoring.md` 所需的全部五个维度）：
-   - **Team**：创始人完整履历、学术/工业背景、过往退出记录
-   - **Market**：赛道 TAM、增速、竞争格局、政策环境
-   - **Moat**：技术壁垒、专利、开源生态、数据网络效应
-   - **Traction**：商业化数据（ARR/客户合同/部署量/benchmark 排名）
-   - **CapEff**：估值、领投方知名度、融资历史
+
+   **Query 构造**：沿用 Phase 1 格式 `{company_name} {keyword1} {keyword2} {search_target}`，每次只加 1-2 个词。
+
+   | 维度 | 搜索目标 |
+   |------|---------|
+   | **Team** | `background`、`LinkedIn`、`education`、`previous exit` |
+   | **Market** | `TAM`、`competition`、`market size` |
+   | **Moat** | `patent`、`technology`、`open source` |
+   | **Traction** | 按阶段判断：早期用 `product`、`launch`、`breakthrough`；有收入信号用 `revenue`、`ARR` |
+   | **CapEff** | `funding`、`valuation`、`Series A`（优先复用 Phase 1 的 funding 搜索结果） |
+
+   agent 根据 Phase 1 已获取的融资/产品信息判断公司阶段，选择对应的 Traction 搜索词。
+
 3. 追加写入 `investment_analysis.md`（Kickstarter 项目采用简版追踪模板，不参与五维评分）
 
 > **阶段3 不再发起任何新搜索**，所有评分依据必须在阶段2收集完毕。
