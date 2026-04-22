@@ -1,7 +1,7 @@
 ---
 name: researcher-eval
 description: |
-  评估技术人员的学术影响力和工程能力，适用于AI、具身智能、机器人、计算机视觉、NLP、强化学习等各技术领域。当用户要求评估某位研究员、工程师、学者或候选人的技术背景、论文引用、GitHub 贡献、开源项目影响力时触发。触发词包括："评估某某的技术能力"、"调研某某的学术背景"、"分析某某的论文和 GitHub"、"做技术尽调"、"查某某的引用量"、"分析某某的开源贡献"、"分析某某的核心成果"。
+  评估技术人员的学术影响力和工程能力，适用于AI、具身智能、机器人、计算机视觉、NLP、强化学习等各技术领域。当用户要求评估某个startup创始团队中的研究员、工程师、学者或候选人的技术背景、论文引用、GitHub 贡献、开源项目影响力时触发。触发词包括："评估某某的技术能力"、"调研某某的学术背景"、"分析某某的论文和 GitHub"、"做技术尽调"、"查某某的引用量"、"分析某某的开源贡献"、"分析某某的核心成果"。
 dependencies:
   - skill: agent-browser
     install: npx skills add https://github.com/vercel-labs/agent-browser --skill agent-browser
@@ -21,11 +21,10 @@ npx skills add https://github.com/vercel-labs/agent-browser --skill agent-browse
 支持的浏览器自动化工具：
 - **agent-browser**（推荐）: `npx skills add https://github.com/vercel-labs/agent-browser --skill agent-browser`
 - **browser-use**: `pip install browser-use` 或其他浏览器自动化方案
-- **Claude 桌面端内置浏览器**: 通过截图和交互获取数据
 
 ### Google Scholar 数据采集
 必须先用浏览器自动化工具打开目标人物的 Google Scholar 主页，获取：
-1. 总引用量、h-index、i10-index
+1. 总引用量
 2. 按引用排序的论文列表
 3. 每篇论文的作者位置（一作/二作）、会议/期刊、引用数
 
@@ -42,7 +41,7 @@ npx skills add https://github.com/vercel-labs/agent-browser --skill agent-browse
 ### Google Scholar 数据
 ```
 1. 打开 https://scholar.google.com/citations?user=[USER_ID]&sortby=citstdirection
-2. 获取：总引用量、h指数、i10指数
+2. 获取：总引用量
 3. 获取按引用排序的论文列表
 4. 记录每篇论文的：作者位置（一作/二作/其他）、会议/期刊、引用数、年份
 5. 统计一作/二作顶会顶刊引用量 = 一作顶刊顶会引用量 + 二作顶刊顶会引用量（两者都要求是顶刊顶会）
@@ -338,14 +337,6 @@ npx skills add https://github.com/vercel-labs/agent-browser --skill agent-browse
 - [局限1]
 - [局限2]
 
-### 3、[姓名]在研究中的具体贡献
-
-| 维度 | [姓名]的贡献 |
-|------|-------------|
-| **论文作者顺序** | [一作/二作/其他]，[说明] |
-| **GitHub代码贡献** | [具体数据，如commits数、排名] |
-| **具体负责工作** | [工作内容] |
-| **影响力** | [被哪些公司采用、成为什么标准] |
 
 ### 4、能力总结
 
@@ -381,7 +372,7 @@ npx skills add https://github.com/vercel-labs/agent-browser --skill agent-browse
 
 **数据口径说明**：
 - **一作/二作顶会顶刊引用**：一作顶刊顶会引用量 + 二作顶刊顶会引用量（两者都要求是顶刊顶会）
-- **顶会顶刊认定**：NeurIPS/ICML/ICLR/ACL/EMNLP/AAAI/CVPR/ICCV/ICRA/IROS/TRO/TPAMI/RA-L等
+- **顶会顶刊认定**：NeurIPS/ICML/ICLR/ACL/EMNLP/NAACL/TACL/AAAI/IJCAI/CVPR/ICCV/ECCV/TPAMI/IJCV/ICRA/IROS/RSS/CoRL/IJRR/T-RO/Science Robotics等（严格参照本 skill 的 `references/top_venues.md`，RAL/WAFR/Nature/Science 不计入，arXiv 预印本按该文档规则处理）
 - **总引用量**：Google Scholar显示的全部论文引用总和
 - **GitHub Stars**：个人主要开源项目的Stars总和
 

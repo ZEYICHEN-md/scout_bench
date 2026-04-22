@@ -39,7 +39,7 @@ npx skills add https://github.com/YOUR_USERNAME/researcher-eval-skill --skill re
 
 ## 数据采集方式
 
-**所有数据必须通过浏览器自动化工具实时爬取：**
+**所有数据必须通过浏览器自动化工具（例如Agent-browser）实时爬取：**
 
 ### Google Scholar
 - 学术引用量、h-index、i10-index
