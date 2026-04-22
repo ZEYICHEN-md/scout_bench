@@ -1,0 +1,26 @@
+{
+  "skill_name": "mongodb/wechat_articles",
+  "database": "db1",
+  "collection": "wechat.articles",
+  "allowed_ops": ["find"],
+  "allowed_fields": [
+    "source_id",
+    "wx_name",
+    "title",
+    "content",
+    "batch",
+    "publish_time_str",
+    "update_time_str",
+    "kw",
+    "any_kw",
+    "ex_kw",
+    "read",
+    "praise",
+    "looking",
+    "individuals"
+  ],
+  "required_fields": ["source_id", "wx_name", "title", "batch"],
+  "unique_keys": ["source_id"],
+  "default_sort": [["publish_time_str", -1]],
+  "default_limit": 50
+}
