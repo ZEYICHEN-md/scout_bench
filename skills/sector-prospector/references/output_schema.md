@@ -21,7 +21,8 @@ Phase 1 赛道解构的输出。
         "agent sandbox startup",
         "AI agent runtime company",
         "sandbox for LLM agents"
-      ]
+      ],
+      "batch": 1
     }
   ],
   "timestamp": "2026-04-22T10:00:00Z"
@@ -36,6 +37,7 @@ Phase 1 赛道解构的输出。
   - `rationale`：该子赛道独立的理由
   - `key_concepts`：3-5 个技术名词/产品概念，粒度要细
   - `search_queries`：Phase 2 的初始 query 列表，agent 会基于此扩展
+  - `batch`：挖掘批次，`1` = 第一批（高优先级），`2` = 第二批（剩余子赛道）
 - `timestamp`：生成时间戳
 
 ---
