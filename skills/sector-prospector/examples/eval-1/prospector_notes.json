@@ -1,0 +1,366 @@
+{
+  "sector_theme": "智能体沙箱 / Agent Sandbox",
+  "total_prospects": 23,
+  "total_after_filter": 23,
+  "excluded_count": 0,
+  "companies": [
+    {
+      "company_name": "Freestyle",
+      "track": "代码执行沙箱 / Code Execution Sandbox",
+      "discovery_path": [
+        {
+          "phase": "concept_search",
+          "query": "e2b vs alternatives competitors",
+          "engine": "exa",
+          "url": "https://news.ycombinator.com/item?id=47663147",
+          "timestamp": "2026-04-22T10:20:00Z"
+        },
+        {
+          "phase": "cross_validation",
+          "query": "Freestyle sandbox competitors",
+          "engine": "tavily",
+          "url": "https://www.saashub.com/freestyle-sandboxes-alternatives",
+          "timestamp": "2026-04-22T10:26:00Z"
+        }
+      ],
+      "excluded": false
+    },
+    {
+      "company_name": "VibeKit",
+      "track": "代码执行沙箱 / Code Execution Sandbox",
+      "discovery_path": [
+        {
+          "phase": "concept_search",
+          "query": "secure code runner startup",
+          "engine": "tavily",
+          "url": "https://www.ycombinator.com/launches/Nhx-vibekit-run-coding-agents-in-a-secure-sandbox",
+          "timestamp": "2026-04-22T10:22:00Z"
+        },
+        {
+          "phase": "cross_validation",
+          "query": "VibeKit coding agent sandbox alternatives",
+          "engine": "tavily",
+          "url": "https://github.com/superagent-ai/vibekit",
+          "timestamp": "2026-04-22T10:27:00Z"
+        }
+      ],
+      "excluded": false
+    },
+    {
+      "company_name": "Runloop",
+      "track": "代码执行沙箱 / Code Execution Sandbox",
+      "discovery_path": [
+        {
+          "phase": "concept_search",
+          "query": "Runloop sandbox startup",
+          "engine": "tavily",
+          "url": "https://runloop.ai/",
+          "timestamp": "2026-04-22T10:25:00Z"
+        }
+      ],
+      "excluded": false
+    },
+    {
+      "company_name": "AgentRunBox",
+      "track": "代码执行沙箱 / Code Execution Sandbox",
+      "discovery_path": [
+        {
+          "phase": "concept_search",
+          "query": "browser sandbox AI agent startup",
+          "engine": "exa",
+          "url": "https://agentrunbox.com/",
+          "timestamp": "2026-04-22T10:28:00Z"
+        }
+      ],
+      "excluded": false
+    },
+    {
+      "company_name": "Sprites (Fly.io)",
+      "track": "代码执行沙箱 / Code Execution Sandbox",
+      "discovery_path": [
+        {
+          "phase": "concept_search",
+          "query": "agent sandbox emerging approaches new methods",
+          "engine": "tavily",
+          "url": "https://rywalker.com/research/ai-agent-sandboxes",
+          "timestamp": "2026-04-22T10:30:00Z"
+        }
+      ],
+      "excluded": false
+    },
+    {
+      "company_name": "Modal",
+      "track": "代码执行沙箱 / Code Execution Sandbox",
+      "discovery_path": [
+        {
+          "phase": "concept_search",
+          "query": "agent sandbox emerging approaches new methods",
+          "engine": "tavily",
+          "url": "https://rywalker.com/research/ai-agent-sandboxes",
+          "timestamp": "2026-04-22T10:30:00Z"
+        }
+      ],
+      "excluded": false
+    },
+    {
+      "company_name": "Blaxel",
+      "track": "代码执行沙箱 / Code Execution Sandbox",
+      "discovery_path": [
+        {
+          "phase": "concept_search",
+          "query": "AI Code Sandbox Benchmark 2026",
+          "engine": "tavily",
+          "url": "https://www.superagent.sh/blog/ai-code-sandbox-benchmark-2026",
+          "timestamp": "2026-04-22T10:32:00Z"
+        }
+      ],
+      "excluded": false
+    },
+    {
+      "company_name": "Beam.cloud",
+      "track": "代码执行沙箱 / Code Execution Sandbox",
+      "discovery_path": [
+        {
+          "phase": "concept_search",
+          "query": "Open-Source Alternatives to E2B for Sandboxed Code Execution",
+          "engine": "tavily",
+          "url": "https://www.beam.cloud/blog/best-e2b-alternatives",
+          "timestamp": "2026-04-22T10:33:00Z"
+        }
+      ],
+      "excluded": false
+    },
+    {
+      "company_name": "Northflank",
+      "track": "代码执行沙箱 / Code Execution Sandbox",
+      "discovery_path": [
+        {
+          "phase": "concept_search",
+          "query": "best code execution sandbox for AI agents",
+          "engine": "tavily",
+          "url": "https://northflank.com/blog/best-code-execution-sandbox-for-ai-agents",
+          "timestamp": "2026-04-22T10:34:00Z"
+        }
+      ],
+      "excluded": false
+    },
+    {
+      "company_name": "Browserbase",
+      "track": "浏览器沙箱 / Browser Sandbox",
+      "discovery_path": [
+        {
+          "phase": "concept_search",
+          "query": "headless browser automation startup",
+          "engine": "tavily",
+          "url": "https://venturebeat.com/ai/exclusive-browserbase-launches-headless-browser-platform-that-lets-llms-automate-web-tasks",
+          "timestamp": "2026-04-22T10:35:00Z"
+        },
+        {
+          "phase": "cross_validation",
+          "query": "Browserbase competitors alternatives",
+          "engine": "tavily",
+          "url": "https://keywordsai.co/market-map/browserbase/alternatives",
+          "timestamp": "2026-04-22T10:37:00Z"
+        }
+      ],
+      "excluded": false
+    },
+    {
+      "company_name": "Steel.dev",
+      "track": "浏览器沙箱 / Browser Sandbox",
+      "discovery_path": [
+        {
+          "phase": "concept_search",
+          "query": "headless browser automation startup",
+          "engine": "tavily",
+          "url": "https://steel.dev/",
+          "timestamp": "2026-04-22T10:36:00Z"
+        },
+        {
+          "phase": "cross_validation",
+          "query": "Steel.dev competitors headless browser",
+          "engine": "tavily",
+          "url": "https://scrapfly.io/blog/posts/best-cloud-browser-apis",
+          "timestamp": "2026-04-22T10:38:00Z"
+        }
+      ],
+      "excluded": false
+    },
+    {
+      "company_name": "Lightpanda",
+      "track": "浏览器沙箱 / Browser Sandbox",
+      "discovery_path": [
+        {
+          "phase": "concept_search",
+          "query": "headless browser automation startup",
+          "engine": "tavily",
+          "url": "https://lightpanda.io/",
+          "timestamp": "2026-04-22T10:36:00Z"
+        },
+        {
+          "phase": "cross_validation",
+          "query": "Lightpanda browser competitors",
+          "engine": "tavily",
+          "url": "https://openalternative.co/alternatives/lightpanda",
+          "timestamp": "2026-04-22T10:39:00Z"
+        }
+      ],
+      "excluded": false
+    },
+    {
+      "company_name": "BrowserOS (Felafax)",
+      "track": "浏览器沙箱 / Browser Sandbox",
+      "discovery_path": [
+        {
+          "phase": "concept_search",
+          "query": "browser sandbox AI agent startup",
+          "engine": "exa",
+          "url": "https://browseros.com/",
+          "timestamp": "2026-04-22T10:37:00Z"
+        }
+      ],
+      "excluded": false
+    },
+    {
+      "company_name": "Anchor Browser",
+      "track": "浏览器沙箱 / Browser Sandbox",
+      "discovery_path": [
+        {
+          "phase": "cross_validation",
+          "query": "Browserbase competitors alternatives",
+          "engine": "tavily",
+          "url": "https://anchorbrowser.io/hub/browserbase-alternative-why-anchor-browser-outperforms",
+          "timestamp": "2026-04-22T10:38:00Z"
+        }
+      ],
+      "excluded": false
+    },
+    {
+      "company_name": "Hyperbrowser",
+      "track": "浏览器沙箱 / Browser Sandbox",
+      "discovery_path": [
+        {
+          "phase": "cross_validation",
+          "query": "Browserbase competitors alternatives",
+          "engine": "tavily",
+          "url": "https://keywordsai.co/market-map/browserbase/alternatives",
+          "timestamp": "2026-04-22T10:38:00Z"
+        }
+      ],
+      "excluded": false
+    },
+    {
+      "company_name": "Scrapfly",
+      "track": "浏览器沙箱 / Browser Sandbox",
+      "discovery_path": [
+        {
+          "phase": "cross_validation",
+          "query": "Steel.dev competitors headless browser",
+          "engine": "tavily",
+          "url": "https://scrapfly.io/blog/posts/best-cloud-browser-apis",
+          "timestamp": "2026-04-22T10:39:00Z"
+        }
+      ],
+      "excluded": false
+    },
+    {
+      "company_name": "BrowserStation",
+      "track": "浏览器沙箱 / Browser Sandbox",
+      "discovery_path": [
+        {
+          "phase": "cross_validation",
+          "query": "Browserbase competitors alternatives",
+          "engine": "tavily",
+          "url": "https://www.reddit.com/r/devops/comments/1m2h3in/browserstation_open_source_alternative_of/",
+          "timestamp": "2026-04-22T10:39:00Z"
+        }
+      ],
+      "excluded": false
+    },
+    {
+      "company_name": "Agent-Sandbox (Kubernetes SIG)",
+      "track": "代码执行沙箱 / Code Execution Sandbox",
+      "discovery_path": [
+        {
+          "phase": "concept_search",
+          "query": "agent sandbox open source implementations github",
+          "engine": "tavily",
+          "url": "https://agent-sandbox.sigs.k8s.io/",
+          "timestamp": "2026-04-22T10:40:00Z"
+        }
+      ],
+      "excluded": false
+    },
+    {
+      "company_name": "Sandbox0",
+      "track": "代码执行沙箱 / Code Execution Sandbox",
+      "discovery_path": [
+        {
+          "phase": "concept_search",
+          "query": "agent sandbox open source implementations github",
+          "engine": "tavily",
+          "url": "https://github.com/sandbox0-ai/sandbox0",
+          "timestamp": "2026-04-22T10:40:00Z"
+        }
+      ],
+      "excluded": false
+    },
+    {
+      "company_name": "AIO Sandbox",
+      "track": "浏览器沙箱 / Browser Sandbox",
+      "discovery_path": [
+        {
+          "phase": "concept_search",
+          "query": "agent sandbox open source implementations github",
+          "engine": "tavily",
+          "url": "https://github.com/agent-infra/sandbox",
+          "timestamp": "2026-04-22T10:41:00Z"
+        }
+      ],
+      "excluded": false
+    },
+    {
+      "company_name": "LLM Sandbox",
+      "track": "代码执行沙箱 / Code Execution Sandbox",
+      "discovery_path": [
+        {
+          "phase": "concept_search",
+          "query": "Python sandbox for LLM agents",
+          "engine": "tavily",
+          "url": "https://levelup.gitconnected.com/llm-sandbox-one-year-journey-to-100k-downloads-c1e1a39a32a1",
+          "timestamp": "2026-04-22T10:42:00Z"
+        }
+      ],
+      "excluded": false
+    },
+    {
+      "company_name": "Pydantic Monty",
+      "track": "代码执行沙箱 / Code Execution Sandbox",
+      "discovery_path": [
+        {
+          "phase": "concept_search",
+          "query": "Python sandbox for LLM agents",
+          "engine": "tavily",
+          "url": "https://pydantic.dev/articles/pydantic-monty",
+          "timestamp": "2026-04-22T10:42:00Z"
+        }
+      ],
+      "excluded": false
+    },
+    {
+      "company_name": "DryRun Security",
+      "track": "代码执行沙箱 / Code Execution Sandbox",
+      "discovery_path": [
+        {
+          "phase": "concept_search",
+          "query": "secure code runner startup",
+          "engine": "tavily",
+          "url": "https://www.dryrun.security/",
+          "timestamp": "2026-04-22T10:43:00Z"
+        }
+      ],
+      "excluded": false
+    }
+  ],
+  "timestamp": "2026-04-22T10:45:00Z"
+}
