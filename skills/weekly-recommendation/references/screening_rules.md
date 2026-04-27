@@ -39,7 +39,6 @@ An, Bai, Cai, Cao, Chang, Chen, Cheng, Cui, Dai, Deng, Ding, Dong, Du, Duan, Fan
 ## 弱信号 → 建议做领英验证
 
 - 姓氏为**拼写变体**（Lee, Jen, Chin, Yong, Cheung, Chiu 等）但名字是西方名或拼音
-- 仅姓氏为华裔常见姓氏，但名字不是标准拼音拼写（如 "W. Chen"）
 - 使用首字母缩写
 - 搜索结果中出现中文拼音姓名但无法确认对应创始人
 
@@ -52,6 +51,31 @@ An, Bai, Cai, Cao, Chang, Chen, Cheng, Cui, Dai, Deng, Ding, Dong, Du, Duan, Fan
 | **日语** | 田中、山本、鈴木、佐藤、渡辺、伊藤、井上、吉田 |
 | **韩语** | Kim, Park, Lee / Yi / Rhee, Kang, Choi, Ahn |
 | **越南语** | 姓名含 "van", "thi", "nguyen" 且原文为越南语拼写 |
+
+---
+
+## 实体验证（强制）
+
+阶段1在识别中文姓名后，必须执行实体验证（Phase 1.5），解决官网死链与创始人错配问题。
+
+### 触发条件
+
+- 强信号公司：官网验证（创始人已隐含在 Step 1 中）
+- 弱信号公司：官网验证（同上，founder 验证已隐含在 Step 1 snippet 中）
+- NOT_CHINESE 公司：跳过验证
+
+### 验证内容
+
+1. **官网验证**：用 `tvly extract` 批量抓取候选 URL，验证可达性（HTTP 200 + 内容 ≥200 字），区分真官网与聚合站（Crunchbase / LinkedIn / Tracxn / TheOrg 等）
+2. **创始人验证**：隐含在 Step 1 搜索结果中。从 Tavily/Exa snippet 中提取 founder 姓名时，同步确认 snippet 中已把该名字和公司绑定。仅当 Step 1 完全无 founder 信息时，才补充搜索 Crunchbase/LinkedIn。
+
+### 处理结果
+
+- 官网通过 + Step 1 已提取 founder → CONFIRMED
+- 官网聚合站/打不开 + Step 1 已提取 founder → CONFIRMED（`verified_website` 留空）
+- 官网+创始人双双失败 → UNCLEAR，`error: entity_verification_failed`
+
+详见 `references/entity_verification.md`。
 
 ---
 
@@ -71,7 +95,9 @@ agent-browser --session-name linkedin eval "(function() { return window.location
 
 ---
 
-## 领英验证执行方式
+## L3: agent-browser LinkedIn 验证（fallback）
+
+> 仅当 L1（官网抓取）和 L2（search snippet 反查）都未命中时执行；若 L3 也无可用 LinkedIn slug，则标 `failed`（最终状态为 UNCLEAR）。
 
 对弱信号创始人，agent 直接调用 agent-browser 打开 LinkedIn 个人页面，提取页面文本并判定：
 
@@ -149,7 +175,7 @@ LinkedIn 验证结果按命中质量决定如何升级置信度：
 |------|------|
 | `CONFIRMED` | 找到明确的华人/华裔创始人（含中国大陆、台湾、香港、新加坡） |
 | `NOT_CHINESE` | 创始团队全部为非华人，无任何中文信号 |
-| `UNCLEAR` | 找到中文拼音姓名但无法通过领英验证确认，或信息不足，或 API 全部失败 |
+| `UNCLEAR` | 找到中文拼音姓名但无法通过实体验证确认（官网验证失败且 Step 1 无 founder 信息），或信息不足，或 API 全部失败 |
 | `SKIP_PUBLIC_HYPE` | 阶段0已标记为过度曝光/已成熟项目，不进入阶段1搜索 |
 
 ---
@@ -167,10 +193,11 @@ LinkedIn 验证结果按命中质量决定如何升级置信度：
 ## 状态转移规则
 
 ```
-PENDING  → CONFIRMED      (找到明确华人创始人)
+PENDING  → CONFIRMED      (找到明确华人创始人且实体验证通过)
 PENDING  → NOT_CHINESE    (确认无华人创始人)
 PENDING  → UNCLEAR        (信息不足，需人工复核)
 PENDING  → SKIP_PUBLIC_HYPE  (阶段0已标记为过度曝光/已成熟项目，直接跳过)
+PENDING  → UNCLEAR        (实体验证全部失败:entity_verification_failed)
 UNCLEAR  → CONFIRMED      (补充搜索后找到确认信号)
 UNCLEAR  → NOT_CHINESE    (补充搜索后确认无华人)
 UNCLEAR  → PENDING        (需要重新搜索)

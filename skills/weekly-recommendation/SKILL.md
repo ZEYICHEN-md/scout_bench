@@ -94,7 +94,7 @@ echo "$WORKSPACE"
 agent 在开始筛查前必须逐项确认：
 
 ```
-□ CLI 工具：tvly（tavily-cli）已安装且在 PATH 中
+□ CLI 工具：tvly（tavily-cli）已安装且在 PATH 中（含 `tvly extract` 子命令）
 □ CLI 工具：mcporter（Exa MCP）已安装且可调用
 □ CLI 工具：agent-browser 已安装且在 PATH 中
 □ API Keys：已加载 Tavily key（含备用）
@@ -197,7 +197,7 @@ curl -s -X POST https://api.exa.ai/search \
    - **去掉泛词**：AI、赋能、智能、平台、工具、系统、解决方案
    - **保留核心词**：具体功能、技术栈、产品形态、目标领域
    - Query 格式：`{company_name} {keyword1} {keyword2} {search_target}`
-   - Phase 1 的 `{search_target}` 每家公司轮换使用：`founder`、`CEO`、`CTO`、`co-founder`、`founding team`、`funding`
+   - Phase 1 的 `{search_target}` 每家公司轮换使用：`founder`、`CEO`、`CTO`、`founding team`、`funding`
      - `funding` 同时帮助判断公司阶段和融资背景，Phase 2 复用结果
 
    **示例**：
@@ -208,11 +208,31 @@ curl -s -X POST https://api.exa.ai/search \
    | Mastra | 用于构建自主 AI 代理和工作流的开源 TS 框架 | TypeScript agent framework | `Mastra TypeScript agent framework CEO` |
    | neuroClues | 通过追踪眼球数据流畅感知、诊断神经病变的智能相机 | eye tracking neurology | `neuroClues eye tracking neurology co-founder` |
 
-2. **识别中文姓名**：依据 `references/screening_rules.md` 判定强/弱信号
-3. **领英验证**（仅弱信号）：依据 `references/screening_rules.md` 执行 browser 验证
+2. **提取 founder 姓名 + 识别中文姓名**：依据 `references/screening_rules.md` 判定强/弱信号
+   - 从 Step 1 的 Tavily/Exa snippet 中提取 founder 姓名，同步确认 snippet 中已把该名字和公司绑定（如 "CEO at Patlytics"）
+   - 判定中文姓名强/弱信号
+   - `founder_verification_layer` 默认记为 `L0_search_snippet`
+   - 仅当 Step 1 完全无 founder 信息时，才补充搜索 Crunchbase/LinkedIn（记为 `L1_supplement`）
+3. **官网验证（Phase 1.5）**：依据 `references/entity_verification.md` 执行
+   - 用 `tvly extract` 批量抓取候选 URL，验证可达性，区分真官网与聚合站
 4. **写入检查点**：立即追加写入 `chinese_screening_checkpoint.csv`
 
+**实体验证触发条件**：
+- 强信号公司：官网验证（founder 已隐含在 Step 1 中）
+- 弱信号公司：官网验证（同上）
+- NOT_CHINESE 公司：不验证
+
 **断点续跑**：读取已有 checkpoint，跳过 `CONFIRMED` / `NOT_CHINESE`，只处理 `PENDING` / `UNCLEAR`。
+
+**Checkpoint CSV 新增字段**（追加到现有列后）：
+
+| 列名 | 类型 | 含义 | 示例 |
+|------|------|------|------|
+| `verified_website` | string | 验证通过的官网 URL，空表未通过 | `https://patlytics.ai` |
+| `website_verification_status` | enum | `verified` / `aggregator_only` / `unreachable` / `not_attempted` | `verified` |
+| `founder_verification_layer` | enum | `L0_search_snippet` / `L1_supplement` / `failed` | `L0_search_snippet` |
+| `evidence_quote` | string | ≤200 字的证据原文（含 founder + company 同框） | `"Paul Lee, CEO at Patlytics, was previously at..."` |
+| `evidence_url` | string | evidence_quote 的来源 URL | `https://www.linkedin.com/in/paul-lee-patlytics` |
 
 ---
 
@@ -233,7 +253,7 @@ agent 按 `references/investment_analysis_template.md` 模板撰写：
    | **Market** | `TAM`、`competition`、`market size` |
    | **Moat** | `patent`、`technology`、`open source` |
    | **Traction** | 按阶段判断：早期用 `product`、`launch`、`breakthrough`；有收入信号用 `revenue`、`ARR` |
-   | **CapEff** | `funding`、`valuation`、`Series A`（优先复用 Phase 1 的 funding 搜索结果） |
+   | **CapEff** | `funding`、`valuation`（优先复用 Phase 1 的 funding 搜索结果） |
 
    agent 根据 Phase 1 已获取的融资/产品信息判断公司阶段，选择对应的 Traction 搜索词。
 
@@ -295,6 +315,8 @@ agent **直接基于** `investment_analysis.md` 和阶段1/2已保存的搜索 J
 | 无法确认华人身份 | `status` 设为 `UNCLEAR` |
 | LinkedIn session 无效 | 跳过验证，标记 `UNCLEAR`，`error: "linkedin_session_invalid"` |
 | 批量执行中断 | 下次运行时从检查点 CSV 读取状态，自动跳过已完成 |
+| 实体验证全部失败 | 标 `UNCLEAR`，`error: entity_verification_failed`，不进 Phase 2 |
+| `tvly extract` 全部失败 | 标 `UNCLEAR`，`error: tvly_extract_failed`，fallback 到 search snippet only |
 
 ---
 
@@ -306,3 +328,4 @@ agent **直接基于** `investment_analysis.md` 和阶段1/2已保存的搜索 J
 | `references/screening_rules.md` | 强/弱信号、排除规则、领英验证标准、状态转移 |
 | `references/vc_scoring.md` | 五维度权重、评分细则、评级定义 |
 | `references/investment_analysis_template.md` | 投资分析格式模板：公司介绍、Verdict 结构、信号标签 |
+| `references/entity_verification.md` | 实体验证规则：官网识别、创始人验证 |
