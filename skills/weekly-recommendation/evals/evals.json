@@ -1,0 +1,23 @@
+{
+  "skill_name": "weekly-recommendation",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "分析这批公司有没有华人创始人：Red Bear AI, Spirit AI, Elorian AI, SOPHON FORCE, Zhiyue Space，给我生成一份完整报告",
+      "expected_output": "完整筛查报告，包含每家公司的 CONFIRMED/NOT_CHINESE/UNCLEAR 状态，华人创始人姓名，置信度，以及投资分析",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "我有14家公司的名单，需要做华人创始人筛查和投资分析，按 VC 框架评分排序，生成最终排名报告",
+      "expected_output": "完整三阶段输出：检查点 CSV + 投资分析 markdown + final_report.md（含 VC 评分排名表）",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "之前跑过一批公司的筛查，生成了 checkpoint CSV，现在新加了3家公司需要继续分析，帮我做完整的筛查和报告",
+      "expected_output": "断点续跑：新公司被筛查，已完成公司被跳过，最终报告包含新旧所有公司的分析",
+      "files": []
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+# 敏感文件，不提交
+.env
+linkedin_auth.json
+
+# 输出文件（按需忽略）
+# companies.csv
+# chinese_screening_checkpoint.csv
+# founder_analysis.md
+# final_report.md

@@ -1,0 +1,23 @@
+{
+  "skill_name": "academic-citation-brief",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "帮我做一份学术引用对比投资Brief。标的公司是Sunday Robotics（做家用机器人），竞品是Generalist AI和Physical Intelligence。创始团队如下：\n\nSunday Robotics：\n- Tony Zhao，CEO & 联合创始人，斯坦福CS博士辍学，之前做过ALOHA和ACT\n- Cheng Chi，CTO & 联合创始人，哥伦比亚大学CS博士辍学，做过Diffusion Policy和UMI\n\nGeneralist AI：\n- Pete Florence，CEO & 联合创始人，MIT CS博士，前Google DeepMind高级研究科学家\n- Andy Zeng，联合创始人 & 首席科学家，Princeton CS博士，前Google DeepMind研究科学家\n- Andrew Barry，CTO & 联合创始人，MIT EECS博士，前Boston Dynamics资深机器人学家\n\nPhysical Intelligence (π)：\n- Karol Hausman，CEO & 联合创始人，USC CS博士，前Google DeepMind/Brain资深科学家\n- Chelsea Finn，联合创始人 & 研究主管，Stanford副教授，MAML作者\n- Sergey Levine，联合创始人 & 首席科学家，UC Berkeley教授，深度RL奠基人\n- Brian Ichter，联合创始人 & VP Engineering，Stanford航空航天博士，前Google Research\n- Quan Vuong，联合创始人，UC San Diego CS博士，前Google DeepMind\n\n请严格按投资Brief格式输出markdown。",
+      "expected_output": "A markdown investment brief with: (1) the three mandatory ranking sentences, (2) per-company tables with Name/Notes/Total/Qualifying/Direction/KeyWork columns, (3) research direction relevance narrative after tables, (4) data source footnotes. Age should appear in the Notes column only if Sunday is the youngest team.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "我想对比两家机器人公司的学术背景。标的公司是Covariant（创始人Peter Abbeel, Rocky Duan, Tianhao Zhang），竞品是Skild AI（创始人Deepak Pathak, Abhinav Gupta）。请爬取Google Scholar数据并生成学术投资Brief。",
+      "expected_output": "A two-company markdown brief following the same structural template: ranking sentences, per-company tables, relevance narrative, footnotes. Since only two companies exist, the ranking sentence uses > instead of >>.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "用Google Scholar查一下这几个人的论文引用，给我做一个投资分析。\n\n1X Technologies：\n- Bernt Børnich，CEO\n- Eric Jang，联合创始人，前Google X\n\nFigure AI：\n- Brett Adcock，CEO\n- Jerry Pratt，CTO\n\n请输出学术对比报告。",
+      "expected_output": "A markdown brief. If Google Scholar blocking occurs, the skill should pause and offer the user two options (open Chrome remote debugging or switch to manual data entry) rather than crashing silently.",
+      "files": []
+    }
+  ]
+}
