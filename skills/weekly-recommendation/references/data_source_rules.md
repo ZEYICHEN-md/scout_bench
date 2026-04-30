@@ -59,6 +59,23 @@ https://trends.readtheone.com/projects?page=1&source=Pitchbook&track=&chinese=tr
 **处理规则**：
 - 标准筛查信源，全部进入阶段1
 - 无特殊过滤规则
+- **必须翻页**：Pitchbook 榜单通常有多页，agent 不得只提取第 1 页
+
+### 翻页规范（适用于 Pitchbook / ARR）
+
+1. **打开目标页**（如 `page=1`），执行 `extract_readtheone.js` 提取当前页数据
+2. **检测分页控件**：检查页面底部是否存在 `.pagination`、`.page-next`、`.load-more` 或页码按钮
+3. **获取最大页数**：从 pagination 控件中读取最后一页页码（或通过连续点击下一页直到无新数据）
+4. **循环提取**：对 `page=2` 到最后一页，依次打开 URL、执行提取脚本、追加到同一列表
+   ```
+   https://trends.readtheone.com/projects?page=2&source=Pitchbook&track=&chinese=
+   https://trends.readtheone.com/projects?page=3&source=Pitchbook&track=&chinese=
+   ...
+   ```
+5. **断点记录**：每成功翻一页，立即更新 `scrape_state.json` 中对应信源的 `last_page`
+6. **终止条件**：到达最后一页、或连续 3 页提取结果为空、或 pagination 控件消失
+
+> **重要**：Kickstarter 和 LinkedIn 大厂华人离职员工**不翻页**（Kickstarter 仅第 1 页；LinkedIn 通常只有 1 页）
 
 ---
 
@@ -74,6 +91,19 @@ https://trends.readtheone.com/projects?page=1&source=Pitchbook&track=&chinese=tr
 - 从榜单 reason 或来源列可直接识别的明显水上项目
 
 agent 在阶段0爬取时，对命中条件的公司在 `companies.csv` 的 `note` 字段标记 `SKIP_PUBLIC_HYPE`。
+
+### agent 主动判断责任
+
+数值标准是底线，但**不可完全依赖**。阶段0提取后，agent 必须逐条扫一眼公司名和 reason，对**明显知名**的公司主动用 WebSearch 确认：
+
+| 判断维度 | 操作 | 示例 |
+|----------|------|------|
+| **一眼即知的大厂/独角兽** | 直接 WebSearch 确认估值/融资额/上市状态 | 看到 SenseTime、Moonshot、Anthropic、Cohere 等名字，不需要等搜索再判断 |
+| **上市公司关联** | 搜索"公司名 母公司"或"公司名 IPO" | SenseTimeMedical → 商汤上市子公司 |
+| **估值/融资额存疑** | 搜索"公司名 valuation"或"公司名 融资" | 若估值接近或超过 $1B，即标记 |
+| **reason 含成熟信号** | reason 中出现"已上市""IPO""估值XX亿"等 | 直接标记 |
+
+> **核心原则**：阶段0过滤**宁可过宽**（误杀早期公司可后续手动加回），**不可过窄**（让 mega 公司进入阶段1浪费搜索资源和分析精力）。agent 不要等用户提醒才过滤。
 
 ---
 
@@ -158,10 +188,11 @@ Kickstarter 项目信息较稀缺，按以下优先级补充查证：
 
 - 多信源合并后，按 `company_name` 去重
 - 若同一家公司出现在多个信源，`source` 列合并写入（如 `Pitchbook|ARR`）
+- `tags` 列记录从榜单提取的类型标签（如 `AI Application`、`ML`、`LLM`），用于阶段1 query 构造时的赛道消歧和关键词提取
 - `note` 列记录 `SKIP_PUBLIC_HYPE` 等标记
 - 最终写入 `companies.csv`：
   ```csv
-  company_name,rank,score,reason,source,track,note
-  Panta,1,9.2,AI Insurance,Pirate、AON、Liberty,Insurance AI,
-  Genspark,3,8.5,...,...,...,SKIP_PUBLIC_HYPE
+  company_name,rank,score,reason,source,track,tags,note
+  Panta,1,9.2,AI Insurance,Pirate、AON、Liberty,Insurance AI,,
+  Genspark,3,8.5,...,...,...,AI Application|LLM,SKIP_PUBLIC_HYPE
   ```

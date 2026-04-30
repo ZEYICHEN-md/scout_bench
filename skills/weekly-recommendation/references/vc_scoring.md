@@ -153,9 +153,9 @@
 
 ## 排名表规则
 
-**CONFIRMED 和 UNCLEAR 公司均进入表格**，NOT_CHINESE 不进入。
+**OVERSEAS_CHINESE 和 UNCLEAR 公司进入表格**，DOMESTIC_CHINESE 和 NOT_CHINESE 不进入。
 
-### CONFIRMED 公司
+### OVERSEAS_CHINESE 公司
 - 正常显示五维度分数、总分、评级
 - 按总分降序排列
 
@@ -165,7 +165,11 @@
   - 公司 tagline（如有）
   - 创始人姓名/背景线索（如有）
   - 信息缺口（如"待 LinkedIn 验证" / "搜索数据不足"）
-- 不占用排名序号，列在 CONFIRMED 公司之后
+- 不占用排名序号，列在 OVERSEAS_CHINESE 公司之后
+
+### DOMESTIC_CHINESE 公司
+- 不进入 VC 排名表
+- 在最终报告"本土华人公司名单"中列出：名称 + tagline + 创始人
 
 ### NOT_CHINESE 公司
 - 不进入 VC 排名表

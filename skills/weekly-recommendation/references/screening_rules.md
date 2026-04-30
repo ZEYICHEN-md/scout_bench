@@ -169,13 +169,43 @@ LinkedIn 验证结果按命中质量决定如何升级置信度：
 
 ---
 
+## 公司类型判定（本土 vs 海外华人）
+
+确认是华人公司后，agent 从同一批 Step 1 搜索结果中进一步判定是**本土华人公司**还是**海外华人公司**，决定是否进入 Phase 2 投资分析。
+
+### 本土公司信号（任意一条即判定）
+
+- **公司名是中文拼音或含汉字**（如 Quna、Xiaohongshu、Pinduoduo）
+- **创始人是中文汉字姓名**（如"张明""李华"）
+- **搜索结果以国内媒体为主**（36kr、中文科技媒体、中文报道）
+
+### 海外华人公司信号
+
+- 公司名为纯英文名称
+- 创始人是拼音姓名（如 Wilson Wang, Paul Lee）
+- 搜索结果以英文内容为主（TechCrunch、英文官网、LinkedIn）
+
+### 默认策略
+
+信号冲突或无法明确判断时，**保守标为 OVERSEAS_CHINESE**（宁可多分析几家）。
+
+### 判定结果
+
+| company_type | 含义 | Phase 2 | Phase 3 排名表 |
+|--------------|------|---------|----------------|
+| `OVERSEAS_CHINESE` | 海外华人公司 | **进入** | **评分排名** |
+| `DOMESTIC_CHINESE` | 本土华人公司 | **不进入** | **不进入**，在最终报告"本土华人公司名单"中列出名称和 tagline |
+| `NOT_CHINESE` | 非华人公司 | 不进入 | 不进入 |
+
+---
+
 ## 状态判定
 
 | 状态 | 条件 |
 |------|------|
-| `CONFIRMED` | 找到明确的华人/华裔创始人（含中国大陆、台湾、香港、新加坡） |
+| `CONFIRMED` | 找到明确的华人/华裔创始人，且 company_type 已判定（OVERSEAS_CHINESE 或 DOMESTIC_CHINESE） |
 | `NOT_CHINESE` | 创始团队全部为非华人，无任何中文信号 |
-| `UNCLEAR` | 找到中文拼音姓名但无法通过实体验证确认（官网验证失败且 Step 1 无 founder 信息），或信息不足，或 API 全部失败 |
+| `UNCLEAR` | 找到中文拼音姓名但无法通过实体验证确认（官网验证失败且 Step 1 无 founder 信息），或信息不足，或 API 全部失败，或无法判定华人身份 |
 | `SKIP_PUBLIC_HYPE` | 阶段0已标记为过度曝光/已成熟项目，不进入阶段1搜索 |
 
 ---
@@ -202,3 +232,27 @@ UNCLEAR  → CONFIRMED      (补充搜索后找到确认信号)
 UNCLEAR  → NOT_CHINESE    (补充搜索后确认无华人)
 UNCLEAR  → PENDING        (需要重新搜索)
 ```
+
+---
+
+## Checkpoint 字段定义（SQLite Schema）
+
+`scripts/screening_db.py` 使用的数据库字段说明：
+
+| 列名 | 类型 | 含义 | 示例 |
+|------|------|------|------|
+| `company` | TEXT PK | 公司名称 | `Patlytics` |
+| `status` | TEXT | `PENDING`/`CONFIRMED`/`NOT_CHINESE`/`UNCLEAR` | `CONFIRMED` |
+| `company_type` | TEXT | `OVERSEAS_CHINESE`/`DOMESTIC_CHINESE`/`NOT_CHINESE` | `OVERSEAS_CHINESE` |
+| `source` | TEXT | 信源 | `Pitchbook\|ARR` |
+| `score` | REAL | 榜单评分 | `9.0` |
+| `track` | TEXT | 赛道 | `AI 医疗` |
+| `reason` | TEXT | 上榜理由 | `AI denial management` |
+| `founder_name` | TEXT | 创始人姓名 | `Wilson Wang` |
+| `founder_verification_layer` | TEXT | `L0_search_snippet` / `L1_supplement` / `failed` | `L0_search_snippet` |
+| `verified_website` | TEXT | 验证通过的官网 URL | `https://patlytics.ai` |
+| `website_verification_status` | TEXT | `verified` / `aggregator_only` / `unreachable` / `not_attempted` | `verified` |
+| `evidence_quote` | TEXT | ≤200 字的证据原文 | `"Paul Lee, CEO at Patlytics..."` |
+| `evidence_url` | TEXT | 证据来源 URL | `https://linkedin.com/in/...` |
+| `error` | TEXT | 错误/异常标记 | `search_conflated` |
+| `updated_at` | TIMESTAMP | 最后更新时间 | — |

@@ -88,12 +88,14 @@ tvly extract <url1> <url2> ... <urlN> \
 
 ## 4. 官网+创始人综合判定
 
-| 官网验证 | 创始人信息 | 状态 | Phase 2 | 备注 |
-|---------|-----------|------|---------|------|
-| ✅ `verified` | ✅ Step 1 已提取 founder | CONFIRMED | 进入 | 正常 case |
-| ❌ `aggregator_only` / `unreachable` | ✅ Step 1 已提取 founder | CONFIRMED | 进入 | `verified_website` 留空，备注"无独立官网，见 Crunchbase 链接" |
-| ✅ `verified` | ❌ Step 1 无 founder + 补充搜索失败 | UNCLEAR | 不进 | `error: entity_verification_failed` |
-| ❌ | ❌ | UNCLEAR | 不进 | `error: entity_verification_failed` |
+确认华人身份后，agent 从同一批 Step 1 搜索结果中同步判定 company_type（详见 `screening_rules.md`"公司类型判定"）。
+
+| 官网验证 | 创始人信息 | 状态 | company_type | Phase 2 | 备注 |
+|---------|-----------|------|--------------|---------|------|
+| ✅ `verified` | ✅ Step 1 已提取 founder | CONFIRMED | 据 Step 1 判定 | OVERSEAS 进入 / DOMESTIC 不进 | 正常 case |
+| ❌ `aggregator_only` / `unreachable` | ✅ Step 1 已提取 founder | CONFIRMED | 据 Step 1 判定 | OVERSEAS 进入 / DOMESTIC 不进 | `verified_website` 留空 |
+| ✅ `verified` | ❌ Step 1 无 founder + 补充搜索失败 | UNCLEAR | — | 不进 | `error: entity_verification_failed` |
+| ❌ | ❌ | UNCLEAR | — | 不进 | `error: entity_verification_failed` |
 
 ---
 
