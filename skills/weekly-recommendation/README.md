@@ -24,13 +24,19 @@
 | `companies.csv` | 阶段0原始数据，含去重后的公司名、榜单评分、赛道、来源、过滤标记等 |
 | `scrape_state.json` | 阶段0断点续爬状态（按信源隔离） |
 | `linkedin_hires_snapshot.json` | LinkedIn 信源快照，用于下一轮变动比对 |
-| `chinese_screening_checkpoint.csv` | 阶段1检查点，记录每家公司的筛查状态：`CONFIRMED` / `NOT_CHINESE` / `UNCLEAR` / `SKIP_*` |
+| `screening.db` | 阶段1 SQLite 检查点，记录每家公司的筛查状态、创始人信息、官网验证结果等 |
+| `keywords.json` | 阶段1前置准备生成，包含每家公司 `founder` + `funding` 的搜索 query |
 | `investment_analysis.md` | 阶段2投资分析正文。标准公司用深度 Verdict 结构；Kickstarter 项目用简版众筹追踪模板 |
 | `final_report.md` | 完整最终报告，包含执行摘要、筛查结果摘要、VC 评分排名表、`investment_analysis.md` 全文 |
 | `tavily_results/` | 阶段1/2 所有 Tavily 搜索原始 JSON |
 | `exa_results/` | 阶段1/2 所有 Exa 搜索原始 JSON |
 
-**VC 评分排名表**（位于 `final_report.md`）包含五维度分数：Team、Market、Moat、Traction、CapEff，以及总分和 Tier 评级。`UNCLEAR` 公司会进入表格但不打分，仅做信息摘要。Kickstarter 项目不纳入 VC 评分排名表。
+**VC 评分排名表**（位于 `final_report.md`）包含五维度分数：Team、Market、Moat、Traction、CapEff，以及总分和 Tier 评级。
+- `OVERSEAS_CHINESE`：正常评分进入排名表
+- `UNCLEAR`：进入表格但不打分，仅做信息摘要
+- `DOMESTIC_CHINESE`：不进入排名表，仅在报告末尾列出名称 + tagline + 创始人
+- `NOT_CHINESE`：仅统计数量，不进入表格
+- Kickstarter 项目不纳入 VC 评分排名表
 
 ---
 
@@ -40,7 +46,7 @@
 
 ```
 启动检查 → 阶段0(数据获取) → 阶段1(筛查) → 阶段2(投资分析) → 阶段3(评分) → 最终报告
-   ↓key确认       ↓写入CSV         ↑___________写入检查点CSV___________|
+   ↓key确认       ↓写入CSV         ↑___________写入检查点 SQLite___________|
 ```
 
 ### 阶段0：数据获取
@@ -49,10 +55,11 @@
 - 去重后写入 `companies.csv`
 
 ### 阶段1：华人创始人筛查
-- 每批约 5 家公司，并行发起 Tavily + Exa 搜索创始团队信息
-- 按 `references/screening_rules.md` 判断强/弱信号
+- **前置准备**：运行 `scripts/build_query.py` 生成 `keywords.json`，包含每家公司阶段1所需的 `founder` + `funding` query
+- 每批约 **8 家公司**，agent 从 `keywords.json` 读取当前 batch 的 query，执行 Tavily + Exa 搜索
+- 按 `references/screening_rules.md` 判断强/弱信号，同步判定 `company_type`（`OVERSEAS_CHINESE` / `DOMESTIC_CHINESE`）
 - 弱信号触发 LinkedIn 个人页面验证
-- 实时追加写入 `chinese_screening_checkpoint.csv`
+- 使用 `scripts/screening_db.py` 写入 SQLite checkpoint，支持断点续跑
 
 ### 阶段2：投资分析
 - 仅对 `CONFIRMED` 公司执行
@@ -71,10 +78,12 @@
 ## 核心亮点
 
 - **信源差异化处理**：不同信源有各自准入/过滤规则，避免用同一套逻辑处理成熟度完全不同的项目
-- **断点续跑**：阶段0和阶段1均支持 checkpoint，中断后可无缝恢复，不会重复处理已完成公司
-- **多 key 自动轮换**：Tavily 和 Exa 均支持主号 + 备用 key，每 5 次请求自动切换，遇到 401/403 立即切换
-- **全页 LinkedIn 扫描**：弱信号创始人验证时采用整页关键词扫描（而非截断前 N 字符），确保 Languages、Education 等中下部信息不被遗漏
-- **Agent 灵活驱动**：避免采用死板的中间脚本，发挥 agent 自身能力，agent 直接读取 checkpoint 和搜索 JSON 完成分析与报告组装
+- **本土 vs 海外华人区分**：筛查阶段同步判定 `OVERSEAS_CHINESE`（进入深度分析）与 `DOMESTIC_CHINESE`（仅列名单），避免对纯国内项目做无效尽调
+- **批量防偷懒机制**：每批 8 家公司、逐批释放上下文、强制进度汇报、PENDING 清零检查，防止 agent 在 100+ 家公司时跳过筛查
+- **断点续跑**：阶段0和阶段1均支持 checkpoint（SQLite + JSON 文件），中断后可无缝恢复
+- **多 key 自动轮换**：Tavily 和 Exa 均支持主号 + 备用 key，遇到 401/403 立即切换
+- **全页 LinkedIn 扫描**：弱信号创始人验证时采用整页关键词扫描，确保 Languages、Education 等信息不被遗漏
+- **Agent 灵活驱动**：agent 直接读取 checkpoint 和搜索 JSON 完成分析与报告组装
 
 ---
 
