@@ -14,6 +14,19 @@ agent-browser eval --file "<skill-dir>/scripts/extract_readtheone.js"
 
 > 脚本位置：`weekly-recommendation/scripts/extract_readtheone.js`
 
+### Fallback（agent-browser 不可用时）
+
+若 `agent-browser` 连接失败（如 `os error 10060`、超时），**经用户批准后**，可使用已验证的 `requests` 备用脚本：
+
+```bash
+python "<skill-dir>/scripts/extract_readtheone_requests.py" "<URL>" --pages 10
+```
+
+> - 脚本位置：`weekly-recommendation/scripts/extract_readtheone_requests.py`
+> - 输出格式：与 `extract_readtheone.js` 完全兼容的 JSON 数组
+> - 使用前提：用户已明确批准（依据 SKILL.md「执行黄线」规则）
+> - 适用场景：Windows 环境 agent-browser 连接超时、WSL 外无 Node 环境等
+
 ## 非真实公司名过滤
 
 **agent 人工过滤非真实公司名**：榜单中常混入描述性条目，agent 在写入 CSV 前必须逐项过滤。
