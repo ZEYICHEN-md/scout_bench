@@ -372,7 +372,7 @@ npx skills add https://github.com/vercel-labs/agent-browser --skill agent-browse
 
 **数据口径说明**：
 - **一作/二作顶会顶刊引用**：一作顶刊顶会引用量 + 二作顶刊顶会引用量（两者都要求是顶刊顶会）
-- **顶会顶刊认定**：NeurIPS/ICML/ICLR/ACL/EMNLP/NAACL/TACL/AAAI/IJCAI/CVPR/ICCV/ECCV/TPAMI/IJCV/ICRA/IROS/RSS/CoRL/IJRR/T-RO/Science Robotics等（严格参照本 skill 的 `references/top_venues.md`，RAL/WAFR/Nature/Science 不计入，arXiv 预印本按该文档规则处理）
+- **顶会顶刊认定**：严格参照本 skill 的 `references/top_venues.md`，涵盖 ML、CV、Robotics、NLP、Data Mining 六大领域及跨学科顶刊。Nature/Science/PNAS 仅限 AI/ML/CS 直接相关主题计入。arXiv 预印本按该文档规则处理。
 - **总引用量**：Google Scholar显示的全部论文引用总和
 - **GitHub Stars**：个人主要开源项目的Stars总和
 
@@ -442,9 +442,10 @@ npx skills add https://github.com/vercel-labs/agent-browser --skill agent-browse
 - [ ] 使用 **agent-browser** 实时爬取 Google Scholar（禁止用 WebSearch 估算）
 - [ ] **必须点击 "SHOW MORE" 查看所有论文**，确保近期论文不遗漏
 - [ ] **时间线通过搜索验证**（禁止根据论文年份推测）
-- [ ] 区分一作/二作/其他位置
+- [ ] 区分一作/二作/其他位置（**共同一作按一作计入**）
 - [ ] 区分顶会顶刊/非顶会顶刊
 - [ ] 一作/二作顶会顶刊引用量 = 一作顶刊顶会 + 二作顶刊顶会
+- [ ] **高引 arXiv 论文已核验 venue**：同一论文的 arXiv 与正式版本不重复计入；确认被顶刊顶会接收的 arXiv 论文需在备注标注接收 venue
 - [ ] 论文按领域分组，组内综合排序（一作40%+引用30%+顶会20%+时效10%）
 - [ ] **核心标签加粗**表示一作顶会高引论文
 - [ ] 日期使用当前日期（2026年）
