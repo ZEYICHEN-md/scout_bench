@@ -20,6 +20,8 @@ _PROFILE = load_profile(_SCRIPT_DIR.parent / "profiles" / "companies.json")
 def insert_company(
     name: str,
     sector: str,
+    direction: str = "AI",
+    author: str = "Bin",
     description: str = None,
     metadata: Dict[str, Any] = None,
 ) -> str:
@@ -29,6 +31,8 @@ def insert_company(
         {
             "name": name,
             "sector": sector,
+            "direction": direction,
+            "author": author,
             "description": description,
             "metadata": metadata or {},
         },

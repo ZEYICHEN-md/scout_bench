@@ -6,11 +6,13 @@
   "allowed_fields": [
     "name",
     "sector",
+    "direction",
+    "author",
     "description",
     "metadata",
     "status"
   ],
-  "required_fields": ["name", "sector"],
+  "required_fields": ["name", "sector", "direction", "author"],
   "unique_keys": ["name", "sector"],
   "default_sort": [["updated_at", -1]],
   "default_limit": 100

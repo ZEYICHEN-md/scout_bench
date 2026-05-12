@@ -64,11 +64,13 @@ export MONGODB_URI="mongodb://user:pass@host:port/db?authSource=admin"
 
 | 函数 | 说明 |
 |---|---|
-| `insert_company(name, sector, description=None, metadata=None)` | 写入/更新公司（幂等） |
+| `insert_company(name, sector, direction="AI", author="Bin", description=None, metadata=None)` | 写入/更新公司（幂等） |
 | `get_company_by_name(name)` | 按名称查公司 |
 | `get_all_companies(sector=None, status=None)` | 列出公司（可筛选） |
 | `update_company_status(name, status)` | 更新公司状态 |
 | `count_companies(sector=None)` | 统计公司数量 |
+
+`companies` 写入时 `direction` 和 `author` 为必填字段；未显式传入时分别默认 `AI` 和 `Bin`。
 
 ### wechat_articles（db1 / wechat.articles）
 
