@@ -182,12 +182,6 @@ LinkedIn 验证结果按命中质量决定如何升级置信度：
 
 > **不作为独立判定依据**：官网语言、域名后缀（.cn/.com）、中文社交媒体账号。这些仅作辅助参考，**不得**因"有中文官网"或".cn 域名"就直接标为 DOMESTIC_CHINESE。
 
-### 海外华人公司信号
-
-- 公司名为纯英文名称
-- 创始人是拼音姓名（如 Wilson Wang, Paul Lee）
-- 搜索结果以英文内容为主（TechCrunch、英文官网、LinkedIn）
-
 ### 默认策略
 
 信号冲突或无法明确判断时，**保守标为 OVERSEAS_CHINESE**（宁可多分析几家）。
@@ -254,7 +248,7 @@ UNCLEAR  → PENDING        (需要重新搜索)
 | `founder_name` | TEXT | 创始人姓名 | `Wilson Wang` |
 | `founder_verification_layer` | TEXT | `L0_search_snippet` / `L1_supplement` / `failed` | `L0_search_snippet` |
 | `verified_website` | TEXT | 验证通过的官网 URL | `https://patlytics.ai` |
-| `website_verification_status` | TEXT | `verified` / `aggregator_only` / `unreachable` / `not_attempted` | `verified` |
+| `website_verification_status` | TEXT | `verified` / `indirect_verified` / `aggregator_only` / `unreachable` / `not_attempted` | `verified` |
 | `evidence_quote` | TEXT | ≤200 字的证据原文 | `"Paul Lee, CEO at Patlytics..."` |
 | `evidence_url` | TEXT | 证据来源 URL | `https://linkedin.com/in/...` |
 | `error` | TEXT | 错误/异常标记 | `search_conflated` |
