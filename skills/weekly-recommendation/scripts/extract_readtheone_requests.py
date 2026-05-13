@@ -6,7 +6,7 @@ Usage:
     python extract_readtheone_requests.py "<URL>" [--pages N]
 
 Outputs a JSON array compatible with extract_readtheone.js:
-    [{"rank":"1","name":"...","score":"...","reason":"...",
+    [{"rank":"1","company_name":"...","score":"...","reason":"...",
       "source":"...","track":"...","tags":["tag1","tag2"]}, ...]
 
 Use this when agent-browser is unavailable (e.g. connection timeout on Windows).
@@ -96,7 +96,7 @@ def extract_page(url: str) -> list[dict]:
         if name and name != '项目名称':
             data.append({
                 'rank': rank,
-                'name': name,
+                'company_name': name,
                 'score': score,
                 'reason': reason,
                 'source': source_val,

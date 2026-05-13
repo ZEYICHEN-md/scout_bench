@@ -17,7 +17,7 @@ def merge_csvs(csv_paths):
     for p in csv_paths:
         with open(p, "r", encoding="utf-8") as f:
             for row in csv.DictReader(f):
-                name = row.get("company_name", "").strip()
+                name = row.get("company_name", "").strip() or row.get("name", "").strip()
                 if not name:
                     continue
                 key = name.lower()
