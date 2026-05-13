@@ -228,6 +228,8 @@ curl -s -X POST https://api.exa.ai/search \
 >    - **分析完一批、写入 checkpoint 后，即可丢弃该批的原始 snippet 上下文**，需要回溯时从文件系统和数据库读取
 >    - 永远只保留"当前 batch 的搜索结果 + 已写入 checkpoint 的统计摘要"在上下文中
 
+> **SKIP_PUBLIC_HYPE 自动过滤**：`screening_db.py import` 会自动将 `note = SKIP_PUBLIC_HYPE` 的公司设为 `status = SKIP_PUBLIC_HYPE`。这些公司不会出现在 `PENDING` 列表中，阶段1无需处理，final report 中单独统计数量即可。
+
 **前置准备（阶段1开始前执行一次）**：
 
 运行 `scripts/build_query.py` 生成 `keywords.json`：
