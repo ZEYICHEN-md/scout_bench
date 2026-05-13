@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 
 OUTPUT_FILE = Path("companies.csv")
-FIELDNAMES = ["company_name", "rank", "score", "reason", "source", "track", "tags"]
+FIELDNAMES = ["company_name", "rank", "score", "reason", "source", "track", "tags", "note"]
 
 
 def merge_csvs(csv_paths):
@@ -32,6 +32,11 @@ def merge_csvs(csv_paths):
                     if new_src:
                         sources.add(new_src)
                     dedup[key]["source"] = "|".join(sorted(sources))
+                    # Preserve note (e.g. SKIP_PUBLIC_HYPE) if present
+                    existing_note = dedup[key].get("note", "")
+                    new_note = row.get("note", "").strip()
+                    if not existing_note and new_note:
+                        dedup[key]["note"] = new_note
     return list(dedup.values())
 
 

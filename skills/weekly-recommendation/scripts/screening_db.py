@@ -165,11 +165,13 @@ def import_companies(db_path: Path, csv_path: Path) -> None:
             company = row.get("company_name", "").strip()
             if not company:
                 continue
+            note = row.get("note", "").strip()
+            status = "SKIP_PUBLIC_HYPE" if note == "SKIP_PUBLIC_HYPE" else "PENDING"
             conn.execute(
                 """
                 INSERT OR IGNORE INTO screening
                 (company, source, score, track, reason, status)
-                VALUES (?, ?, ?, ?, ?, 'PENDING')
+                VALUES (?, ?, ?, ?, ?, ?)
                 """,
                 (
                     company,
@@ -177,6 +179,7 @@ def import_companies(db_path: Path, csv_path: Path) -> None:
                     row.get("score", None),
                     row.get("track", ""),
                     row.get("reason", ""),
+                    status,
                 ),
             )
     conn.commit()
