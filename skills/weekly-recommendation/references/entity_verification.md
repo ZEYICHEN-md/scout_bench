@@ -59,7 +59,8 @@ tvly extract <url1> <url2> ... <urlN> \
 | 结果 | 条件 | `website_verification_status` | `verified_website` |
 |------|------|------------------------------|-------------------|
 | 通过 | HTTP 200 + 内容非空 + 内容字数 ≥ 200 | `verified` | 填该 URL |
-| 不可达 | HTTP 4xx/5xx / 超时 / 内容为空 | `unreachable` | 留空 |
+| 间接验证 | `tvly extract` 失败，但 Step 1 搜索 JSON 中有来自该候选官网域名的有效 snippet | `indirect_verified` | 填该 URL |
+| 不可达 | HTTP 4xx/5xx / 超时 / 内容为空，且无间接验证 | `unreachable` | 留空 |
 | 无独立官网 | 全部候选 URL 都是聚合站（通过黑名单过滤后无剩余） | `aggregator_only` | 留空 |
 
 > **字数 ≥ 200 的过滤目的**：排除纯 landing page（仅含 "Coming soon"、邮箱订阅框、无实质内容）。允许 marketing site，只要内容足够识别产品形态。
@@ -92,7 +93,7 @@ tvly extract <url1> <url2> ... <urlN> \
 
 | 官网验证 | 创始人信息 | 状态 | company_type | Phase 2 | 备注 |
 |---------|-----------|------|--------------|---------|------|
-| ✅ `verified` | ✅ Step 1 已提取 founder | CONFIRMED | 据 Step 1 判定 | OVERSEAS 进入 / DOMESTIC 不进 | 正常 case |
+| ✅ `verified` / `indirect_verified` | ✅ Step 1 已提取 founder | CONFIRMED | 据 Step 1 判定 | OVERSEAS 进入 / DOMESTIC 不进 | 正常 case |
 | ❌ `aggregator_only` / `unreachable` | ✅ Step 1 已提取 founder | CONFIRMED | 据 Step 1 判定 | OVERSEAS 进入 / DOMESTIC 不进 | `verified_website` 留空 |
 | ✅ `verified` | ❌ Step 1 无 founder + 补充搜索失败 | UNCLEAR | — | 不进 | `error: entity_verification_failed` |
 | ❌ | ❌ | UNCLEAR | — | 不进 | `error: entity_verification_failed` |

@@ -122,6 +122,16 @@ agent 在开始筛查前必须逐项确认：
 
 ---
 
+## Agent 行为约束
+
+以下约束优先级高于一切效率或便利性考虑。若与"提速""自动化""写个脚本"等想法冲突，以此约束为准。
+
+1. **严格执行 skill 的阶段和检查点，不自行创建未定义的脚本或流程**
+2. **工具失效时先汇报，由用户决定是跳过、替换还是修复**
+3. **阶段1 坚持手动逐批分析，每家公司搜完 snippet 后逐条确认 founder 姓名和公司绑定关系**
+
+---
+
 ## 阶段0: 数据获取（网页爬取）
 
 > 支持多信源：Pitchbook、ARR 等。完成后输出 `companies.csv`。
@@ -199,7 +209,7 @@ curl -s -X POST https://api.exa.ai/search \
 ### 并发
 
 - 同一批次建议 **8 家**公司并行搜索
-- 所有原始 JSON 保存到 `tavily_results/` 和 `exa_results/`
+- 所有原始 JSON 保存到 `tavily_results/` 和 `exa_results/`，命名格式：`{company_name}_{search_target}.json`（如 `Patlytics_founder.json`、`Patlytics_funding.json`）
 
 ---
 
@@ -209,7 +219,7 @@ curl -s -X POST https://api.exa.ai/search \
 
 > **防偷懒硬性规则**（agent 必须遵守）：
 > 1. **执行前必须先列出 batch 清单**：每批搜索前，先向用户报告"本批处理 X 家公司：A, B, C, D, E"
-> 2. **每批执行后必须确认写入 checkpoint**：搜索完成后，逐家确认 `screening_db.py upsert` 已写入，不能漏写
+> 2. **每批执行后必须确认写入 checkpoint**：搜索完成后，逐家确认 `screening_db.py upsert` 已写入，且 **founder + funding 的原始 JSON 均已保存到 `tavily_results/` / `exa_results/``**
 > 3. **禁止跳过任何 PENDING 公司**：未查询确认前，不得假设"剩余都是 NOT_CHINESE"或"这批不用搜了"
 > 4. **阶段1结束前必须查询 PENDING 数量**：`list --status PENDING` 结果为零才能进入阶段2
 > 5. **进度汇报**：每完成 20-25 家公司，向用户汇报一次当前进度（CONFIRMED / NOT_CHINESE / UNCLEAR / PENDING 各多少家）
@@ -306,6 +316,12 @@ agent 按 `references/investment_analysis_template.md` 模板撰写。以下为*
 - Verdict 表格的「核心依据」列用 `•` 分点，`<br>` 换行，每维度 2-4 条
 - 总评部分（5 句左右），包含核心优势、核心风险、退出预期
 
+**写后自检（每家写完必须核对，缺一项补一项）**：
+- [ ] 官网链接已填入且非空
+- [ ] 创始人领英链接已填入且非空
+- [ ] 融资信息含时间/年份
+- [ ] Verdict 表格「核心依据」列每维度均有内容
+
 ### 信息缺口补充搜索
 
 **优先复用**阶段1的搜索 JSON。缺口补充搜索必须覆盖 `references/vc_scoring.md` 所需的全部五个维度：
@@ -318,13 +334,13 @@ agent 按 `references/investment_analysis_template.md` 模板撰写。以下为*
 | **Market** | `TAM`、`competition`、`market size` |
 | **Moat** | `patent`、`technology`、`open source` |
 | **Traction** | 按阶段判断：早期用 `product`、`launch`、`breakthrough`；有收入信号用 `revenue`、`ARR` |
-| **CapEff** | `funding`、`valuation`（优先复用 Phase 1 的 funding 搜索结果） |
+| **CapEff** | `funding`、`valuation`**（必须优先读取 `tavily_results/{company}_funding.json`，存在则直接提取；仅当不存在时才发起新搜索）** |
 
 agent 根据 Phase 1 已获取的融资/产品信息判断公司阶段，选择对应的 Traction 搜索词。
 
 ### 输出
 
-- 标准信源公司：按上述 8 模块写入 `investment_analysis.md`
+- 标准信源公司：按上述 8 模块写入 `investment_analysis.md`。公司数量较多时，按批次追加写入（如每 5 家一批），避免单次输出过长撑爆上下文。
 - Kickstarter 项目：采用简版追踪模板，不参与五维评分
 
 > **阶段3 不再发起任何新搜索**，所有评分依据必须在阶段2收集完毕。
@@ -338,6 +354,13 @@ agent 根据 Phase 1 已获取的融资/产品信息判断公司阶段，选择�
 **OVERSEAS_CHINESE 公司正常评分；UNCLEAR 公司进入表格但不打分**；DOMESTIC_CHINESE 和 NOT_CHINESE 不进入排名表。（Kickstarter 项目不纳入 VC 评分排名表，仅在 `investment_analysis.md` 中保留简版追踪。）
 
 agent **直接基于** `investment_analysis.md` 和阶段1/2已保存的搜索 JSON 进行评分/汇总，**不发起额外搜索**。依据 `references/vc_scoring.md` 输出 Markdown 表格。
+
+> **评分复用（禁止重复分析）**：阶段3不是重新做分析，而是将阶段2 Verdict 已写好的定性判断直接量化为 1-10 分。
+> - Team ← Verdict「创始人信号」的亮点等级与核心依据
+> - Market ← Verdict「市场机会」的亮点等级与核心依据
+> - Moat / Traction ← Verdict「产品」中的技术壁垒与商业化数据
+> - CapEff ← 阶段2已收集的 funding/估值信息
+> agent 不得因"再确认"而重新阅读原始搜索 JSON，评分必须基于 `investment_analysis.md` 中已有的 Verdict 内容。
 
 ### 表格结构
 

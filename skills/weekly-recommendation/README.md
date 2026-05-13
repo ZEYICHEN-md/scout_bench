@@ -52,7 +52,7 @@
 ### 阶段0：数据获取
 - 使用 `agent-browser` 爬取 readtheone 榜单页面
 - 应用各信源过滤规则（SKIP_PUBLIC_HYPE、SKIP_KICKSTARTER_FILTER、LinkedIn 快照比对）
-- 去重后写入 `companies.csv`
+- 使用 `scripts/merge_readtheone.py` 合并多信源并去重，写入 `companies.csv`
 
 ### 阶段1：华人创始人筛查
 - **前置准备**：运行 `scripts/build_query.py` 生成 `keywords.json`，包含每家公司阶段1所需的 `founder` + `funding` query
@@ -66,7 +66,7 @@
 - 优先复用阶段1已保存的搜索 JSON，按需补充缺口搜索
 - 标准公司覆盖 Team / Market / Moat / Traction / CapEff 五个维度
 - Kickstarter 项目使用简版模板追踪
-- 追加写入 `investment_analysis.md`
+- 按批次（如每 5 家）追加写入 `investment_analysis.md`，写完执行字段完整性自检（官网、LinkedIn、融资时间、Verdict 内容）
 
 ### 阶段3：VC 评分排序
 - 基于 `investment_analysis.md` 和已有搜索 JSON 直接评分
@@ -83,6 +83,8 @@
 - **断点续跑**：阶段0和阶段1均支持 checkpoint（SQLite + JSON 文件），中断后可无缝恢复
 - **多 key 自动轮换**：Tavily 和 Exa 均支持主号 + 备用 key，遇到 401/403 立即切换
 - **全页 LinkedIn 扫描**：弱信号创始人验证时采用整页关键词扫描，确保 Languages、Education 等信息不被遗漏
+- **阶段2写后自检 + 阶段3评分复用**：阶段2写完每家公司强制核对关键字段；阶段3评分直接量化阶段2 Verdict，禁止重复分析
+- **官网验证 fallback**：`tvly extract` 失败时，可降级使用阶段1搜索 JSON 中的域名 snippet 做间接验证
 - **Agent 灵活驱动**：agent 直接读取 checkpoint 和搜索 JSON 完成分析与报告组装
 
 ---

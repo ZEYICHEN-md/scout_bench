@@ -29,7 +29,9 @@ def main():
 
     queries = {}
     for c in companies:
-        name = c["name"].strip()
+        name = c.get("company_name", "").strip() or c.get("name", "").strip()
+        if not name:
+            continue
         queries[name] = {
             "founder": build_query(name, "founder"),
             "funding": build_query(name, "funding"),
