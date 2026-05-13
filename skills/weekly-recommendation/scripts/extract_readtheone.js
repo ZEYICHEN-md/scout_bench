@@ -88,7 +88,7 @@
     const track = cleanEmoji(trackTextEl ? trackTextEl.textContent : (trackCol ? trackCol.textContent : '')).replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
 
     if (name && name !== '项目名称') {
-      data.push({ rank, name, score, reason, source, track, tags });
+      data.push({ rank, company_name: name, score, reason, source, track, tags });
     }
   });
   return JSON.stringify(data);
