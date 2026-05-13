@@ -9,10 +9,12 @@
 所有 readtheone 榜单页面（Pitchbook / ARR / LinkedIn 大厂华人离职员工 / Kickstarter）共享同一 DOM 结构，使用同一脚本提取：
 
 ```bash
-agent-browser eval --file "<skill-dir>/scripts/extract_readtheone.js"
+agent-browser eval "$(cat <skill-dir>/scripts/extract_readtheone.js)"
 ```
 
 > 脚本位置：`weekly-recommendation/scripts/extract_readtheone.js`
+>
+> **Windows 注意**：`--file` 参数在 Windows 绝对路径下会触发 `SyntaxError`，必须使用 inline eval（如上所示）。
 
 ### Fallback（agent-browser 不可用时）
 
@@ -199,7 +201,7 @@ Kickstarter 项目信息较稀缺，按以下优先级补充查证：
 
 ## 去重与写入
 
-- 多信源合并后，按 `company_name` 去重
+- 使用 `scripts/merge_readtheone.py` 合并多信源 CSV 并去重，输出标准格式的 `companies.csv`
 - 若同一家公司出现在多个信源，`source` 列合并写入（如 `Pitchbook|ARR`）
 - `tags` 列记录从榜单提取的类型标签（如 `AI Application`、`ML`、`LLM`），用于阶段1 query 构造时的赛道消歧和关键词提取
 - `note` 列记录 `SKIP_PUBLIC_HYPE` 等标记

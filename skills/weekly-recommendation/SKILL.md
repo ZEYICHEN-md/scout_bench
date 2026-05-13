@@ -142,13 +142,12 @@ agent 在开始筛查前必须逐项确认：
 
 ```bash
 cd "$WORKSPACE"
-# Windows 环境：绝对路径传 --file 可能解析失败，优先使用 inline eval
-agent-browser eval --file "<skill-dir>/scripts/extract_readtheone.js"
+agent-browser eval "$(cat <skill-dir>/scripts/extract_readtheone.js)"
 ```
 
 > `<skill-dir>` 为 `weekly-recommendation` skill 的根目录。首次执行前请确认该路径。
 >
-> **Windows 注意**：`agent-browser eval --file "C:/Users/..."` 可能触发 `SyntaxError: Unexpected identifier 'C'`。若遇到此问题，改用 inline eval（将脚本内容直接作为参数传入）。
+> **Windows 注意**：`agent-browser eval --file "C:/Users/..."` 会触发 `SyntaxError: Unexpected identifier 'C'`。Windows 环境**必须使用 inline eval**（如上所示），不可使用 `--file`。
 
 ### 支持信源
 
