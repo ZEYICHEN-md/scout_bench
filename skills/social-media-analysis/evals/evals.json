@@ -1,0 +1,47 @@
+{
+  "skill_name": "social-media-analysis",
+  "evals": [
+    {
+      "id": 1,
+      "name": "single-company-full-search",
+      "prompt": "搜索一下关于 Exa 这家公司在 Twitter 上的舆论情况。把 maxItems 设为 10 以节省成本。生成一份完整的舆情分析报告（Markdown），包含好差评比例统计、核心声音、以及意见领袖代表性评论。",
+      "expected_output": "一份完整的 Markdown 舆情报告，包含：1）社区舆论概况表格（情感分布、好评/差评核心声音）；2）意见领袖代表性评论表格（含原文引用、作者背景、粉丝量、链接）",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "multi-company-comparison",
+      "prompt": "对比一下 Perplexity 和 Exa 这两家 AI 搜索公司在 Twitter 上的口碑。把 maxItems 设为 10 以节省成本。生成一份对比分析报告（Markdown），使用多列表格格式。",
+      "expected_output": "一份多实体对比的 Markdown 报告，包含横向对比表格（有效推文数、情感分布、好评/差评核心声音分别对比两家公司）",
+      "files": []
+    },
+    {
+      "id": 3,
+      "name": "advanced-search-syntax",
+      "prompt": "使用 Twitter 高级搜索语法抓取数据：from:sama maxItems:10。对抓取到的推文进行情感分析，并生成简要的分析摘要（不需要完整报告，只需核心统计和好差评核心声音）。",
+      "expected_output": "对 @sama 最近推文的情感分析摘要，包含情感分布统计和好差评核心声音",
+      "files": []
+    },
+    {
+      "id": 4,
+      "name": "reddit-single-keyword",
+      "prompt": "搜索 Reddit 上关于 'Supabase' 的讨论，包含评论。maxPostsPerSource 设为 10 以节省成本。生成一份 Reddit 舆情分析报告，包含情感分布、好差评核心声音、以及讨论的 subreddit 分布。",
+      "expected_output": "一份 Markdown 报告，包含：1）情感分布表格（有效帖子+评论数、score、upvoteRatio、正负面占比）；2）好差评核心声音（基于 score 排序）；3）subreddit 分布表格；4）无意见领袖 section",
+      "files": []
+    },
+    {
+      "id": 5,
+      "name": "reddit-subreddit-specific",
+      "prompt": "看看 r/webdev 上大家对 Supabase 的评价。maxPostsPerSource 设为 10。只需要核心统计和好差评核心声音，不需要完整报告。",
+      "expected_output": "Reddit 情感分析摘要，包含情感分布统计、基于 score 的好差评核心声音、提及的 subreddit 列表",
+      "files": []
+    },
+    {
+      "id": 6,
+      "name": "reddit-company-comprehensive",
+      "prompt": "全面搜索 Reddit 上关于 Supabase 公司的舆论。使用多个关键词组合（Supabase, Supabase auth, Supabase postgres）。maxPostsPerSource 各设为 5。生成完整报告。",
+      "expected_output": "多关键词合并后的完整 Reddit 舆情报告，包含去重后的统计、subreddit 分布、好差评核心声音",
+      "files": []
+    }
+  ]
+}
