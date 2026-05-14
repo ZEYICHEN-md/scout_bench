@@ -370,7 +370,8 @@ node --env-file=.env scripts/sentiment_analysis.js \
 ```bash
 node --env-file=.env scripts/cluster_voices.js \
   --input analyzed/analyzed_<ts>.json \
-  --output voices/voices_<ts>.json
+  --output voices/voices_<ts>.json \
+  --target "Supabase"
 ```
 
 **脚本可靠性设计：**
@@ -418,6 +419,7 @@ node --env-file=.env scripts/cluster_voices.js \
 
 **步骤 2：选代表（由 `cluster_voices.js` 自动完成）**
 - 在每个主题簇内，选取 `confidence > 0.7` 且互动最高（Twitter: `likeCount`，Reddit: `score`）的一条作为代表
+- **优先选正文包含目标关键词（`--target`）的记录**：防止帖子标题相关、但评论本身跑题的抖机灵/噪音被选为代表
 - 优先选 `depth: 0` 的 Reddit 评论（顶层评论可见度最高）
 - 数量：各情感分类总共 3-5 条代表，**优先覆盖不同主题簇**（确保多元化），而非同一主题的多个变体
 

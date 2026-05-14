@@ -4,7 +4,8 @@
  * Usage:
  *   node --env-file=.env cluster_voices.js \
  *     --input analyzed_data.json \
- *     --output voices.json
+ *     --output voices.json \
+ *     --target "Supabase"
  *
  * Reliability stack:
  *   1. Clusters key_phrase (concise) instead of full text
@@ -37,8 +38,14 @@ function parseArgs() {
   for (let i = 0; i < args.length; i++) {
     if (args[i] === "--input") opts.input = args[++i];
     else if (args[i] === "--output") opts.output = args[++i];
+    else if (args[i] === "--target") opts.target = args[++i];
   }
   return opts;
+}
+
+function containsTarget(text, target) {
+  if (!target || !text) return false;
+  return text.toLowerCase().includes(target.toLowerCase());
 }
 
 async function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
@@ -49,9 +56,14 @@ function getEngagement(item) {
   return item.confidence || 0;
 }
 
-function selectRepresentative(items) {
-  // Prefer Reddit top-level comments (depth: 0), then highest engagement
+function selectRepresentative(items, target) {
+  // Prefer items whose text contains the target keyword (on-topic)
+  // Then prefer Reddit top-level comments (depth: 0)
+  // Then highest engagement
   const sorted = [...items].sort((a, b) => {
+    const relevantA = containsTarget(a.text, target) ? 1 : 0;
+    const relevantB = containsTarget(b.text, target) ? 1 : 0;
+    if (relevantA !== relevantB) return relevantB - relevantA;
     const depthA = a.depth ?? 0;
     const depthB = b.depth ?? 0;
     if (depthA !== depthB) return depthA - depthB;
@@ -184,7 +196,7 @@ function fallbackCluster(items, polarity) {
   }));
 }
 
-async function clusterPolarity(items, polarity) {
+async function clusterPolarity(items, polarity, target) {
   if (items.length === 0) return [];
 
   // 1. Quality filter + cap
@@ -233,7 +245,7 @@ async function clusterPolarity(items, polarity) {
   // 5. Build final output
   const clusters = result.clusters.map(c => {
     const clusterItems = c.item_numbers.map(n => filtered[n - 1]);
-    const representative = selectRepresentative(clusterItems);
+    const representative = selectRepresentative(clusterItems, target);
     const avgConfidence = clusterItems.reduce((sum, it) => sum + (it.confidence || 0), 0) / clusterItems.length;
     return {
       theme: c.theme,
@@ -250,12 +262,13 @@ async function clusterPolarity(items, polarity) {
 async function main() {
   const opts = parseArgs();
   if (!opts.input || !opts.output) {
-    console.error("Usage: node cluster_voices.js --input <file> --output <file>");
+    console.error("Usage: node cluster_voices.js --input <file> --output <file> [--target <company_name>]");
     process.exit(1);
   }
 
   const inputPath = path.resolve(opts.input);
   const outputPath = path.resolve(opts.output);
+  const target = opts.target || "";
 
   const raw = JSON.parse(fs.readFileSync(inputPath, "utf-8"));
   const items = Array.isArray(raw) ? raw : [];
@@ -270,10 +283,11 @@ async function main() {
   const negative = items.filter(it => it.sentiment === "negative");
 
   console.log(`Clustering ${positive.length} positive, ${negative.length} negative items...`);
+  if (target) console.log(`Target relevance boost: "${target}"`);
 
   const [posClusters, negClusters] = await Promise.all([
-    clusterPolarity(positive, "positive"),
-    clusterPolarity(negative, "negative"),
+    clusterPolarity(positive, "positive", target),
+    clusterPolarity(negative, "negative", target),
   ]);
 
   const output = {
