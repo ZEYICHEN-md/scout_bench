@@ -1,0 +1,85 @@
+{
+  "skill_name": "citation-stat",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "帮我查一下林俊旸（Junyang Lin）的 Google Scholar 引用量数据，他之前在阿里做 Qwen，现在可能在别的公司。给我做一个论文分类表格和引用量统计。",
+      "expected_output": "一份包含林俊旸引用量统计（总引用量、h-index、一作/二作顶刊顶会引用量）和论文分类表格（按领域分组，合并单元格）的 Markdown 输出",
+      "files": [],
+      "assertions": [
+        {
+          "name": "contains_total_citations",
+          "description": "输出中包含总引用量数据"
+        },
+        {
+          "name": "contains_hindex",
+          "description": "输出中包含 h-index 数据"
+        },
+        {
+          "name": "contains_top_venue_citations",
+          "description": "输出中包含一作/二作顶刊顶会引用量统计"
+        },
+        {
+          "name": "contains_paper_table",
+          "description": "输出中包含论文分类表格"
+        },
+        {
+          "name": "table_has_domain_grouping",
+          "description": "论文表格按领域分组，使用合并单元格而非多个独立表格"
+        },
+        {
+          "name": "marks_author_positions",
+          "description": "表格中标注了作者角色（一作/二作/其他）"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "我想对比几位 AI 研究者的引用量：杨植麟、吴俣（Yu Wu）、姚顺雨。请分别爬取他们的 Google Scholar 数据，给每人一个论文分类表，再给一个多人对比表格。",
+      "expected_output": "三个学者的引用量统计和论文分类表格，以及一张包含姓名、总引用量、h-index、一/二作顶刊顶会引用量的多人对比总表",
+      "files": [],
+      "assertions": [
+        {
+          "name": "contains_all_three_researchers",
+          "description": "输出中包含全部三位学者的数据"
+        },
+        {
+          "name": "contains_multi_comparison_table",
+          "description": "输出中包含多人对比表格"
+        },
+        {
+          "name": "contains_per_researcher_tables",
+          "description": "每位学者都有独立的论文分类表格"
+        },
+        {
+          "name": "comparison_has_required_columns",
+          "description": "对比表格包含姓名、总引用量、h-index、一/二作顶刊顶会引用量列"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "统计一下郭达雅（Daya Guo）的引用量，他是 DeepSeek-R1 的核心研究员，2026年加入了字节跳动。我需要他的论文分类表格，按领域分组。",
+      "expected_output": "郭达雅的引用量统计和按领域分组的论文分类表格（合并单元格格式）",
+      "files": [],
+      "assertions": [
+        {
+          "name": "contains_total_citations",
+          "description": "输出中包含总引用量数据"
+        },
+        {
+          "name": "contains_paper_table",
+          "description": "输出中包含论文分类表格"
+        },
+        {
+          "name": "table_has_domain_grouping",
+          "description": "论文表格按领域分组，使用合并单元格"
+        },
+        {
+          "name": "marks_venue_status",
+          "description": "表格中标注了是否顶会/顶刊"
+        }
+      ]
+    }
+  ]
+}
