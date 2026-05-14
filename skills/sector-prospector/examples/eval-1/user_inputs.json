@@ -1,0 +1,11 @@
+{
+  "sector_theme": "智能体沙箱 / Agent Sandbox",
+  "key_concepts": ["sandbox", "agent training", "agent runtime", "code execution", "browser sandbox", "WASM runtime"],
+  "reference_companies": ["e2b", "Daytona"],
+  "signal_sources": ["AI Agent 训练环境", "AI Agent 运行环境"],
+  "investment_thesis": "看好LLM Agent安全隔离执行环境的需求，尤其是代码执行、浏览器自动化和轻量级WASM运行时方向",
+  "excluded_areas": ["只做静态代码分析不做动态执行", "已上市云厂商的沙箱服务"],
+  "preferred_dimensions": "技术实现方式",
+  "user_provided": true,
+  "timestamp": "2026-04-22T10:00:00Z"
+}

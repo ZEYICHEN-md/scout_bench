@@ -1,0 +1,112 @@
+[
+  {
+    "id": 1,
+    "text": "This new update is absolutely incredible, best feature they've added in years",
+    "expected": "positive",
+    "description": "直接赞扬",
+    "actual": "positive",
+    "confidence": 0.95,
+    "key_phrase": "This new update is absolutely incredible, best feature they've added in years",
+    "reasoning": "推文使用了强烈的正面词汇 'absolutely incredible' 和最高级 'best feature they've added in years'，明确表达了对新更新的高度赞扬和喜爱。没有转折或反讽迹象，情感非常明确且强烈，属于典型的正面情感。",
+    "success": true
+  },
+  {
+    "id": 2,
+    "text": "It's a bit pricey ngl, but the quality is unmatched",
+    "expected": "positive",
+    "description": "欲扬先抑",
+    "actual": "positive",
+    "confidence": 0.95,
+    "key_phrase": "the quality is unmatched",
+    "reasoning": "该推文使用了'欲扬先抑'的表达套路：先承认价格偏高（'a bit pricey ngl'），但通过转折词'but'引出核心观点——'质量无与伦比'。'ngl'（not gonna lie）是英文社媒中强调真诚的俚语，进一步增强了正面评价的可信度。整体情感明确为正面，置信度很高。",
+    "success": true
+  },
+  {
+    "id": 3,
+    "text": "Looks stunning on the surface, but under the hood it's a mess",
+    "expected": "negative",
+    "description": "欲抑先扬",
+    "actual": "negative",
+    "confidence": 0.95,
+    "key_phrase": "but under the hood it's a mess",
+    "reasoning": "该推文采用了典型的'欲抑先扬'（Bait-and-switch criticism）表达套路：先用'Looks stunning on the surface'进行表面夸奖，再用'but'转折揭露实质问题'under the hood it's a mess'。核心情感是负面批评，表面夸奖只是铺垫，实际意图是表达对产品内在质量的不满。",
+    "success": true
+  },
+  {
+    "id": 4,
+    "text": "Amazing, it crashed again 👏",
+    "expected": "negative",
+    "description": "反讽",
+    "actual": "negative",
+    "confidence": 0.95,
+    "key_phrase": "Amazing, it crashed again 👏",
+    "reasoning": "这是典型的反讽（sarcasm）表达。字面使用了正面词汇'Amazing'，但结合'it crashed again'（再次崩溃）的负面事实，以及👏这个在批评语境中表示讽刺的emoji，实际意图是表达对产品频繁崩溃的不满和嘲讽。因此归类为negative，置信度很高。",
+    "success": true
+  },
+  {
+    "id": 5,
+    "text": "Yeah no, this is not it",
+    "expected": "negative",
+    "description": "表面肯定实际否定",
+    "actual": "negative",
+    "confidence": 0.95,
+    "key_phrase": "Yeah no, this is not it",
+    "reasoning": "该推文使用了典型的反讽/否定表达套路。'Yeah no' 是英文社媒中常见的表面肯定实际否定的开头，后面直接跟 'this is not it'（这不是它/这不行），明确表达了负面评价。整体语气是失望或不满，没有正面或中性成分。",
+    "success": true
+  },
+  {
+    "id": 6,
+    "text": "Apple just announced the new iPhone 15 today",
+    "expected": "neutral",
+    "description": "客观陈述",
+    "actual": "neutral",
+    "confidence": 0.95,
+    "key_phrase": "Apple just announced the new iPhone 15 today",
+    "reasoning": "这是一条纯粹的事实陈述，仅报告了苹果公司发布新产品的消息，没有包含任何情感词汇、评价性语言或主观态度。虽然iPhone 15本身可能是一个正面产品，但推文只是客观陈述事件，没有表达赞扬、批评或任何情感倾向，因此归类为中性。",
+    "success": true
+  },
+  {
+    "id": 7,
+    "text": "Lmao this meme is hilarious",
+    "expected": "positive",
+    "description": "搞笑内容（Lmao + hilarious = positive）",
+    "actual": "positive",
+    "confidence": 0.95,
+    "key_phrase": "Lmao this meme is hilarious",
+    "reasoning": "推文使用了英文社媒夸张表达 'Lmao' 和正面评价词 'hilarious'，明确表达了对 meme 的喜爱和欣赏。情感非常明确，属于正面。",
+    "success": true
+  },
+  {
+    "id": 8,
+    "text": "Love how they 'innovated' by copying everyone else",
+    "expected": "negative",
+    "description": "阴阳怪气（引号强调虚假）",
+    "actual": "negative",
+    "confidence": 0.95,
+    "key_phrase": "Love how they 'innovated' by copying everyone else",
+    "reasoning": "该推文使用了反讽（sarcasm）的表达套路。字面意思是'喜欢他们通过抄袭别人来创新'，但引号中的'innovated'（创新）明显是反讽，实际意图是批评该品牌/产品缺乏原创性，只会抄袭。'Love how'在这里是典型的反讽开头，表面夸奖实则嘲讽。因此归类为负面情感，置信度极高。",
+    "success": true
+  },
+  {
+    "id": 9,
+    "text": "No cap, this slaps different",
+    "expected": "positive",
+    "description": "俚语正面（no cap + slaps）",
+    "actual": "positive",
+    "confidence": 0.95,
+    "key_phrase": "No cap, this slaps different",
+    "reasoning": "该推文使用了英文社交媒体俚语表达：'No cap' 表示'不撒谎/说真的'，强调真诚；'slaps different' 是俚语，意为'非常棒/与众不同'。整体是明确的正面赞美，情感非常强烈且无歧义。",
+    "success": true
+  },
+  {
+    "id": 10,
+    "text": "Mid product, nothing special about it",
+    "expected": "negative",
+    "description": "俚语负面（mid = 平庸）",
+    "actual": "negative",
+    "confidence": 0.95,
+    "key_phrase": "Mid product, nothing special about it",
+    "reasoning": "该推文使用了英文社媒俚语'mid'，意为平庸、一般，属于负面评价。后半句'nothing special about it'进一步强化了这种负面情感，明确表达了对产品的失望和不满。整体语气直接、无转折，情感倾向非常明确。",
+    "success": true
+  }
+]
