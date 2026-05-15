@@ -34,7 +34,7 @@ Phase 2: 深度挖掘（Deep Prospecting）
   - Round 1: 锚点直接搜索
   - Round 2: 反向扩散（从已知项目找竞品/投资者/创始人）
   - Round 3: 维度补充
-  - 输出：raw_prospects.json + 原始搜索 JSON
+  - 输出：raw_prospects_{sub_sector}.json（按子赛道分文件）+ 原始搜索 JSON
 
 Phase 3: 聚合与初筛（Aggregation & Screening）
   - 全局去重、Public Hype 过滤、公司信息确认
@@ -122,22 +122,35 @@ mcporter call 'exa-full.web_search_exa(query: "agent sandbox technical approache
 ```json
 {
   "sector_theme": "智能体沙箱 / Agent Sandbox",
+  "analysis_summary": "Agent 沙箱赛道处于早期，2024-2025 年涌现多个种子轮项目，核心需求是代码执行安全隔离。",
   "sub_sectors": [
     {
       "name": "代码执行沙箱 / Code Sandbox",
-      "key_concepts": ["code execution", "Python sandbox", "JS sandbox", "REPL"]
+      "rationale": "多篇文章提到 e2b、Daytona，核心是让 LLM 安全运行 Python/JS",
+      "key_concepts": ["code execution", "Python sandbox", "JS sandbox", "REPL"],
+      "search_queries": ["code execution sandbox startup", "e2b alternatives"],
+      "batch": 1
     },
     {
       "name": "浏览器沙箱 / Browser Sandbox",
-      "key_concepts": ["browser automation", "headless browser", "web agent"]
+      "rationale": "headless browser、web agent 操作网页需求明确",
+      "key_concepts": ["browser automation", "headless browser", "web agent"],
+      "search_queries": ["browser sandbox for AI agents", "headless browser automation startup"],
+      "batch": 2
     },
     {
       "name": "WASM轻量级沙箱 / WASM Runtime",
-      "key_concepts": ["WebAssembly", "WASM runtime", "lightweight sandbox"]
+      "rationale": "WebAssembly、毫秒级启动，适合高频调用场景",
+      "key_concepts": ["WebAssembly", "WASM runtime", "lightweight sandbox"],
+      "search_queries": ["WASM sandbox startup", "WebAssembly runtime AI agents"],
+      "batch": 2
     },
     {
       "name": "安全策略与隔离 / Security Policy Layer",
-      "key_concepts": ["sandbox policy", "permission control", "behavior audit"]
+      "rationale": "permission control、behavior audit 为企业刚需",
+      "key_concepts": ["sandbox policy", "permission control", "behavior audit"],
+      "search_queries": ["agent sandbox security policy startup", "AI agent permission control"],
+      "batch": 2
     }
   ]
 }
@@ -276,7 +289,7 @@ tvly search "Daytona funding founders overview" --json --max-results 5 --depth b
 
 ```
 sector-prospector/
-├── SKILL.md                          # 核心 skill 文件（< 400 行，流程骨架）
+├── SKILL.md                          # 核心 skill 文件（流程骨架 + 输出纪律）
 ├── README.md                         # 本文档（案例说明）
 ├── references/
 │   ├── discovery_strategies.md       # Phase 2 搜索策略（Anchor & Expand）
