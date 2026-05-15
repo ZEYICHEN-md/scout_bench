@@ -78,7 +78,21 @@ description: |
      - 会议/年份：`.gs_gray`（第二个匹配）
      - 引用数：`.gsc_a_c`
    - **反复点击"SHOW MORE"**直到全部加载。如列表极长，到约200篇时停止，并注明剩余未加载数量。
-4. 将原始论文列表（标题、作者、会议、年份、引用数）保存到本地草稿文件，供交叉核对。
+4. 将原始论文列表保存到 `{company}_{name}_papers.jsonl`，每条记录包含：
+   ```json
+   {
+     "title": "...",
+     "authors": ["..."],
+     "venue": "...",
+     "year": 2024,
+     "citations": 123,
+     "target_author_position": "first/second/other",
+     "is_top_venue": true,
+     "counted": true
+   }
+   ```
+   - `counted`：仅当同时满足顶刊顶会 + 一二作时才为 `true`，表示该论文引用量已计入「顶刊顶会&一二作引用量」
+   - 如列表极长（超过200篇），超出部分可不写入 JSONL，但需在脚注中注明未加载数量
 
 **为什么必须用浏览器自动化**：Google Scholar主页是动态的且反爬严格。第三方API（Semantic Scholar、OpenAlex）经常返回不完整或过时的数据。只有浏览器自动化能保证获取到实时的"All / Since 2021"侧边栏和完整的可见论文列表。
 
@@ -87,9 +101,7 @@ description: |
 这是最核心的计算步骤，规则必须严格执行：只有同时满足以下两个条件，论文的引用量才计入"顶刊顶会&一二作引用量"：
 
 **条件1：发表在顶刊顶会上**
-- 对照 `references/top_venues.md` 中的列表判断。
-- 匹配时忽略大小写、标点、年份和卷号。
-- 允许部分匹配（如 "Proceedings of Robotics: Science and Systems" 匹配 "RSS"）。
+- 按 `references/top_venues.md` 的 Normalization Rules 和 aliases 判定；venue 被严重截断导致规则无法匹配时，以论文标题搜索确认。
 - 仅arXiv而无后续会议/期刊信息的，不算顶会。
 
 **条件2：该学者是第一作者或第二作者**
@@ -98,11 +110,11 @@ description: |
 - 中文名：`"C Chi"` 对应 Cheng Chi，按姓氏和首字母匹配。
 
 **操作流程**：
-1. 逐篇遍历该学者的论文列表。
-2. 对每篇先看会议是否命中顶刊顶会列表；再看该学者是否一作或二作。
-3. 两个条件同时满足，把该论文引用数累加到"顶刊顶会&一二作引用量"。
-4. 全部遍历后核对：累加结果必须 ≤ 该学者"总引用量"；如更高，说明计算有误，重新检查。
-5. 把符合条件的论文单独列一个清单（标题 + 作者 + 会议 + 引用数），方便抽查核对。
+1. 读取 `{company}_{name}_papers.jsonl`，逐篇遍历。
+2. 对每篇先判定 `is_top_venue`（按 `references/top_venues.md`）；再判定 `target_author_position`（一作/二作/其他）。
+3. 两个条件同时满足，将该论文的 `counted` 设为 `true`，并把引用数累加到"顶刊顶会&一二作引用量"。
+4. 全部遍历后核对：累加结果必须 ≤ 该学者"总引用量"；如更高，说明计算有误，重新检查 JSONL。
+5. 保存更新后的 JSONL（含 `counted` 字段），供最终输出和抽查核对使用。
 
 ### 第四步：研究方向与创业路线相关性分析
 
@@ -158,7 +170,9 @@ description: |
 ## 质量检查
 
 向用户返回最终markdown前：
-1. 核对表格中每个数字都出现在原始爬取数据中（不得虚构引用数）。
+1. 核对表格中每个数字都出现在 `{company}_{name}_papers.jsonl` 中（不得虚构引用数）。
+2. 核对 JSONL 中所有 `counted: true` 的论文，其 `is_top_venue` 和 `target_author_position` 均符合判定规则。
+3. 确认顶刊顶会&一二作引用量 = JSONL 中所有 `counted: true` 的论文 `citations` 之和。
 4. 确认三条必备排名语句存在且准确。
 5. 确认markdown表格语法正确。
 6. **检查禁用内容**：搜索输出中是否出现以下关键词/结构，如出现则删除："技术谱系"、"师承"、"投资护城河"、"五星"、"看多"、"看空"、"执行摘要"、"投资判断"、"关键投资论点"。
