@@ -44,6 +44,7 @@ A paper counts toward **顶刊顶会&一二作引用量** only if it meets **all
 - TACL (Transactions of the ACL)
 - COLING (International Conference on Computational Linguistics)
 - Findings of ACL / Findings of EMNLP / Findings of NAACL (ACL 官方 Findings track)
+- Computational Linguistics (MIT Press, ACL 官方期刊)
 
 ## Data Mining / Web / Knowledge Engineering
 

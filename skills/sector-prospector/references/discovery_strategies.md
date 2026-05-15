@@ -35,6 +35,8 @@ Round 3: 维度补充搜索
 
 **质量法则**：一个项目被发现的轮次越早、被独立 query 命中的次数越多，其信息可信度越高。
 
+**融资信号优先法则**：Round 1 的融资信号 query（`founded 2024 2025`、`seed funding`）是发现早期项目最高效的路径，必须优先执行并充分挖掘。扩散机制（Round 2/3）是对融资信号发现的"基础盘"做补充，而非替代。
+
 ---
 
 ## 二、搜索轮次详解
@@ -80,28 +82,33 @@ Round 3: 维度补充搜索
 
 #### 情况 B：无 Reference Company，只有 Key Concepts（弱锚点）
 
-**核心 query 集**（按优先级执行，前 5 个必须）：
+**核心 query 集**（按优先级执行，前 6 个必须）：
 
 ```
-# 1. 技术概念 + 创业信号（最可能找到早期项目）
-"{key_concept} startup"
-"{key_concept} early stage company"
-"who is building {key_concept}"
+# 1. 融资信号 query（发现早期项目效率最高，必须执行）
+"{key_concept} startup founded 2024 2025 2026"
+"{key_concept} seed funding pre-seed"
+"{key_concept} stealth mode early stage"
 
-# 2. 技术概念 + 融资信号（验证市场活跃度）
-"{key_concept} seed funding"
-"{key_concept} series A"
-"{key_concept} raised funding"
+# 2. 创始人信号 query（高价值人才网络）
+"ex-Google ex-OpenAI {key_concept} startup founded"
+"PhD {key_concept} company founded 2024 2025"
 
 # 3. 技术概念 + 开源信号（找到技术先行的团队）
 "{key_concept} github open source"
 "{key_concept} open source project"
+"who is building {key_concept}"
 ```
 
 **示例**（key_concept = "code sandbox"）：
-- `"code sandbox startup"` → 发现 e2b, Daytona, CodeSandbox
-- `"code sandbox seed funding"` → 发现近期融资的早期项目
+- `"code sandbox startup founded 2024 2025 2026"` → 直接命中近期成立的早期项目
+- `"code sandbox seed funding pre-seed"` → 发现刚拿钱的 stealth 项目
 - `"code sandbox github open source"` → 发现开源项目，再追踪其商业化
+
+**为什么融资信号 query 放在 Round 1**：
+- 融资信号 query（`seed funding`、`founded 2024 2025`）直接命中融资新闻，是发现早期项目最高效的路径
+- 不受"competitor 文章只写知名公司"的偏差影响
+- 作为 Round 1 的"基础盘"，确保每个子赛道至少有 3-5 个高可信度早期项目
 
 ---
 
@@ -111,18 +118,35 @@ Round 3: 维度补充搜索
 
 **触发条件**：Round 1 完成后，必须执行。这是发现"隐藏项目"的关键轮次。
 
-#### 2A. 竞争扩散
+#### 2A. 生态扩散（competitor 降级为辅助）
 
-从 Round 1 的每个代表性公司出发：
+**competitor 搜索的问题**：competitor 类文章天然只写已有一定知名度的公司，真正的新项目极少出现在 competitor 列表中。因此 competitor 搜索**不适合作为主力扩散路径**，只作为辅助。
+
+**但不等于完全放弃**：alternatives 搜索仍有价值——"替代方案"往往意味着新公司用**不同技术路线**做类似的事，这正是发现差异化早期项目的信号。
+
+**生态扩散 query 集**（按优先级执行）：
 
 ```
-"{company_A} vs {company_B}"          # 找直接对比文章中提到的第三方
-"alternatives to {company_A}"          # 找替代方案
-"{company_A} competitors"              # 找竞争对手列表
-"{company_A} similar startups"         # 找同类早期项目
+# 1. 上下游和生态伙伴（最容易发现新公司）
+"{company_A} integration partners"
+"{company_A} ecosystem tools"
+"tools that work with {company_A}"
+
+# 2. 替代技术路线（保留 alternatives，但目的是找不同技术路线的新玩家）
+"{company_A} vs"                       # 看对比文章中提到的不同技术路线
+"open source alternative to {company_A}"
+"{company_A} similar but different approach"
+
+# 3. 辅助性 competitor 搜索（执行 1-2 个即可，不深入）
+"{company_A} competitors"
+"{company_A} similar startups"
+
+# 4. 从使用场景扩散
+"{company_A} use cases"
+"who uses {company_A}"
 ```
 
-**技巧**：对比文章（"A vs B"）往往会提到 C、D 等第三方，这些是高质量线索。
+**技巧**：对比文章（"A vs B"）中提到的第三方，如果是**不同技术路线**的公司，往往比"直接竞品"更有早期信号。
 
 #### 2B. 投资者扩散
 
@@ -239,7 +263,7 @@ Round 3: 维度补充搜索
 | 某 query 连续返回 0 个有效结果 | 放宽关键词（如从 "WASM sandbox for healthcare" 放宽到 "WASM sandbox healthcare"） |
 | 某 query 发现大量 public hype 公司 | 加限定词（如加 "seed" / "early stage" / "founded 2024"） |
 | 发现某类公司频繁出现（如都是做 Container-based） | 增加 "VM-based" / "WASM-based" 等替代技术路线的搜索 |
-| 发现某明星项目的 direct competitor | 立即围绕该 competitor 做 Round 2 扩散 |
+| 发现某明星项目的生态伙伴/投资者 | 立即围绕该投资者做 portfolio 扩散，围绕其技术栈做替代路线搜索 |
 | 发现某 VC 多次出现 | 深度搜索该 VC 在该领域的全部 portfolio |
 | 某子赛道发现项目 < 5 个 | 尝试换关键词或换搜索维度（从"技术"换到"场景"） |
 | 某子赛道发现项目 > 15 个 | 收紧过滤，优先深入挖掘高潜力项目的生态 |
@@ -300,16 +324,16 @@ Li, Zhang, Wang, Liu, Chen, Yang, Huang, Zhao, Zhou, Wu, Xu, Sun, Ma, Zhu, Hu, G
 
 | 信号 | 行动 |
 |------|------|
-| Round 1 已发现 10+ 个高可信度项目 | 重点做 Round 2（反向扩散），Round 3 可选 |
+| Round 1 融资信号 query 已发现 8+ 个高可信度项目 | 重点做 Round 2（投资者/创始人扩散），Round 3 可选 |
 | Round 1 只发现 3-5 个项目 | 必须做 Round 2 + Round 3 |
-| Round 2 发现大量 competitors | 对最有代表性的 2-3 个做深度扩散 |
+| Round 2 生态扩散返回大量已知平台 | 停止生态扩散，转向投资者/创始人扩散 |
 | 某子赛道技术属性强 | 优先 Round 3B（开源/学术） |
 | 某子赛道应用属性强 | 优先 Round 3C（垂直场景） |
-| 有 reference_company | Round 1 优先执行 2A 和 2B（投资者扩散） |
+| 有 reference_company | Round 1 优先执行投资者扩散 + 生态扩散 |
 
 ---
 
-## 六、每轮搜索的覆盖目标
+## 七、每轮搜索的覆盖目标
 
 **理想情况下**，每个子赛道应通过多轮搜索覆盖到以下信息源：
 

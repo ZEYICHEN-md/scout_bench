@@ -103,9 +103,9 @@ Phase 3: 聚合与初筛（Aggregation & Screening）
 **搜索策略**：query 保持与"智能体沙箱"同等粒度
 
 ```bash
-tvly search "agent sandbox product types approaches" --json --max-results 10 --depth basic
-tvly search "agent sandbox different implementations" --json --max-results 10 --depth basic
-mcporter call 'exa.web_search_exa(query: "agent sandbox technical approaches architectures", numResults: 10)'
+tvly search "agent sandbox product types approaches" --json --max-results 10 --depth basic --time-range year
+tvly search "agent sandbox different implementations" --json --max-results 10 --depth basic --time-range year
+mcporter call 'exa-full.web_search_exa(query: "agent sandbox technical approaches architectures", numResults: 10, type: "auto")'
 ```
 
 **从搜索结果中识别细分方向**：
@@ -143,7 +143,7 @@ mcporter call 'exa.web_search_exa(query: "agent sandbox technical approaches arc
 }
 ```
 
-**关键**：Agent 向用户展示 sector_map，确认或调整后再进入 Phase 2。
+**关键**：sector_map 由 agent 全自动生成并直接使用，不中断用户确认。所有子赛道最终都会被挖掘，按信号强度优先调度。
 
 ---
 
@@ -158,17 +158,17 @@ mcporter call 'exa.web_search_exa(query: "agent sandbox technical approaches arc
 ```bash
 # Tavily + Exa 双引擎并行
 # Tavily（偏新闻融资）
-tvly search "e2b alternatives competitor" --json --max-results 10 --depth basic > tavily_results/code_sandbox_r1_e2b.json
+tvly search "e2b alternatives competitor" --json --max-results 10 --depth basic --time-range year > tavily_results/code_sandbox_r1_e2b.json
 
 # Exa（偏语义深度）
-mcporter call 'exa.web_search_exa(query: "e2b similar products different approach", numResults: 10)' > exa_results/code_sandbox_r1_e2b.json
+mcporter call 'exa-full.web_search_exa(query: "e2b similar products different approach", numResults: 10, type: "auto")' > exa_results/code_sandbox_r1_e2b.json
 ```
 
 如果用户没有提供参考公司，用技术概念搜索：
 
 ```bash
-tvly search "code execution sandbox startup" --json --max-results 10 --depth basic
-mcporter call 'exa.web_search_exa(query: "Python sandbox for LLM agents", numResults: 10)'
+tvly search "code execution sandbox startup" --json --max-results 10 --depth basic --time-range year
+mcporter call 'exa-full.web_search_exa(query: "Python sandbox for LLM agents", numResults: 10, type: "auto")'
 ```
 
 **Round 2: 反向扩散**
@@ -177,22 +177,22 @@ mcporter call 'exa.web_search_exa(query: "Python sandbox for LLM agents", numRes
 
 ```bash
 # 找竞争对手
-tvly search "Daytona competitors alternatives" --json --max-results 10 --depth basic
-mcporter call 'exa.web_search_exa(query: "companies like Modal Labs code execution", numResults: 10)'
+tvly search "Daytona competitors alternatives" --json --max-results 10 --depth basic --time-range year
+mcporter call 'exa-full.web_search_exa(query: "companies like Modal Labs code execution", numResults: 10, type: "auto")'
 
 # 找投资者的其他 portfolio
-tvly search "Daytona funding investor portfolio" --json --max-results 10 --depth basic
+tvly search "Daytona funding investor portfolio" --json --max-results 10 --depth basic --time-range year
 
 # 找创始人背景
-tvly search "Daytona founders ex-Google ex-OpenAI" --json --max-results 10 --depth basic
+tvly search "Daytona founders ex-Google ex-OpenAI" --json --max-results 10 --depth basic --time-range year
 ```
 
 **Round 3: 维度补充**
 
 ```bash
 # 查缺补漏：学术/开源信号
-tvly search "code sandbox open source github trending" --json --max-results 10 --depth basic
-tvly search "ex-Google ex-OpenAI code sandbox startup founded" --json --max-results 10 --depth basic
+tvly search "code sandbox open source github trending" --json --max-results 10 --depth basic --time-range year
+tvly search "ex-Google ex-OpenAI code sandbox startup founded" --json --max-results 10 --depth basic --time-range year
 ```
 
 **信息提取示例**：
@@ -228,7 +228,7 @@ tvly search "ex-Google ex-OpenAI code sandbox startup founded" --json --max-resu
 
 发现 Modal 时，某篇文章写"Series A+"。执行验证搜索：
 ```bash
-tvly search "Modal funding series valuation 2025 2026" --json --max-results 3 --depth basic
+tvly search "Modal funding series valuation 2025 2026" --json --max-results 3 --depth basic --time-range year
 ```
 发现实际已是 **$87M Series B**，更新信息并标注 `信息已更新`。
 
@@ -250,7 +250,7 @@ tvly search "Modal funding series valuation 2025 2026" --json --max-results 3 --
 
 对每个保留的公司：
 ```bash
-tvly search "Daytona funding founders overview" --json --max-results 5 --depth basic
+tvly search "Daytona funding founders overview" --json --max-results 5 --depth basic --time-range year
 ```
 
 确认创始人背景、最新融资、产品形态，修正 Phase 2 中可能过时的信息。
@@ -346,6 +346,6 @@ Agent（全自动流程）：
 - Series B+ 公司在非常小众的赛道或近期有重大技术突破时，仍可能有投资价值
 - 最终判断交给 weekly-recommendation 的完整分析流程
 
-**4. 为什么 Phase 1 完成后必须向用户确认？**
+**4. 为什么 Phase 1 完成后不中断用户确认？**
 
-确保挖掘方向符合用户的真实需求，而不是 agent 的通用推断。用户可能更看好 WASM 方向而非浏览器方向，agent 不应该替用户做决定。
+sector-prospector 的定位是**高效发现和信息收集**，而非替用户做投资决策。所有子赛道最终都会被挖掘，按信号强度优先调度。如果用户事后发现某个子方向不相关，可在输出报告中忽略该部分，而不是在挖掘中途打断流程。全自动执行减少摩擦，提升挖掘效率。

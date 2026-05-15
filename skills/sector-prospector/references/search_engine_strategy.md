@@ -8,12 +8,14 @@
 
 **不是每个 query 都双引擎**，按环节定策略，平衡覆盖面和 API 成本：
 
-| 环节 | 引擎策略 | 原因 |
-|------|---------|------|
-| **Phase 1 赛道解构** | 单引擎（Tavily 为主） | 目的是理解赛道结构，不需要交叉验证 |
-| **Phase 2 Round 1 锚点直接搜索** | **必须双引擎并行** | 发现项目的核心轮次，Tavily 偏新闻融资、Exa 偏语义深度，互补覆盖 |
-| **Phase 2 Round 2 反向扩散** | **必须双引擎并行** | 从已知项目找竞品/投资者/创始人，需要最大覆盖 |
-| **Phase 2 Round 3 维度补充** | 单引擎即可（Tavily） | 查缺补漏，如果 Round 1/2 已发现足够项目，快速扫一遍即可 |
+| 环节 | Tavily | Exa (mcporter exa-full) | 原因 |
+|------|--------|------------------------|------|
+| **Phase 1 赛道解构** | ✅ 主力 | ❌ 不需要 | 目的是理解赛道结构，单引擎足够 |
+| **Phase 2 Round 1 锚点直接搜索** | ✅ **并行** | ✅ **`web_search_exa`** | 发现项目的核心轮次，Tavily 偏新闻融资、Exa 偏语义深度，互补覆盖 |
+| **Phase 2 Round 2 反向扩散** | ✅ **并行** | ✅ **`web_search_exa`** | 从已知项目找竞品/投资者/创始人，需要最大覆盖 |
+| **Phase 2 Round 3 维度补充** | ✅ 快速扫 | ❌ 不需要 | 查缺补漏，单引擎即可 |
+| **Phase 3 公司信息确认** | ✅ 快速验证 | ✅ **`company_research_exa`** | Exa 公司研究工具返回结构化档案，比手动 query 更精准 |
+| **Phase 3 创始人背景补充** | ✅ 辅助 | ✅ **`people_search_exa`** | Exa 人物搜索深挖创始人职业经历 |
 
 ### 两个引擎的分工
 
@@ -26,10 +28,10 @@
 
 ```bash
 # Tavily
-tvly search "{query}" --json --max-results 10 --depth basic > tavily_results/{sub_sector}_{round}_{keyword}.json
+tvly search "{query}" --json --max-results 10 --depth basic --time-range year > tavily_results/{sub_sector}_{round}_{keyword}.json
 
-# Exa（同时执行）
-mcporter call 'exa.web_search_exa(query: "{query}", numResults: 10)' > exa_results/{sub_sector}_{round}_{keyword}.json
+# Exa（同时执行，通过 mcporter exa-full）
+mcporter call 'exa-full.web_search_exa(query: "{query}", numResults: 10, type: "auto")' > exa_results/{sub_sector}_{round}_{keyword}.json
 ```
 
 ---
@@ -38,24 +40,25 @@ mcporter call 'exa.web_search_exa(query: "{query}", numResults: 10)' > exa_resul
 
 ### Tavily
 
-**首选**：`tvly search "{query}" --json --max-results 5 --depth basic`
+**首选**：`tvly search "{query}" --json --max-results 5 --depth basic --time-range year`
 
 **参数说明**：
 - `--json`：输出 JSON 格式，便于解析
 - `--max-results 5`：默认 5 条，Phase 1/2 可用 10 条
 - `--depth basic`：快速搜索，balanced 用于深度验证
+- `--time-range year`：只返回近 1 年的结果，过滤旧文噪音，聚焦最新融资和早期信号
 
 **备选**（curl）：
 
 ```bash
 curl -s -X POST https://api.tavily.com/search \
   -H "Content-Type: application/json" \
-  -d "{\"api_key\":\"$TAVILY_API_KEY\",\"query\":\"{query}\",\"max_results\":5,\"search_depth\":\"basic\",\"include_answer\":true}"
+  -d "{\"api_key\":\"$TAVILY_API_KEY\",\"query\":\"{query}\",\"max_results\":5,\"search_depth\":\"basic\",\"time_range\":\"year\",\"include_answer\":true}"
 ```
 
 ### Exa
 
-**首选**：`mcporter call 'exa.web_search_exa(query: "{query}", numResults: 5)'`
+**首选**：`mcporter call 'exa-full.web_search_exa(query: "{query}", numResults: 5, type: "auto")'`
 
 **参数说明**：
 - `numResults`：结果数量，Phase 1/2 可用 10

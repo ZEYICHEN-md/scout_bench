@@ -37,7 +37,7 @@ Phase 1 赛道解构的输出。
   - `rationale`：该子赛道独立的理由
   - `key_concepts`：3-5 个技术名词/产品概念，粒度要细
   - `search_queries`：Phase 2 的初始 query 列表，agent 会基于此扩展
-  - `batch`：挖掘批次，`1` = 第一批（高优先级），`2` = 第二批（剩余子赛道）
+  - `batch`：搜索调度优先级，`1` = 高信号优先挖掘，`2` = 常规顺序（仅内部使用，不暴露给用户）
 - `timestamp`：生成时间戳
 
 ---
@@ -92,11 +92,61 @@ Phase 2 深度挖掘的中间输出。
 - `founder_name_signal_basis`：信号判定依据，如 `"姓氏 Wang 匹配拼音，全名 Wei Wang 符合拼音结构"`
 - `discovered_at`：发现时间戳
 
-**注意**：`raw_prospects.json` 是**按子赛道分文件**存储的，还是**单一全局文件**，由 agent 根据文件大小决定。如果子赛道较多，建议分文件：`raw_prospects_{sub_sector_slug}.json`。
+**注意**：`raw_prospects.json` **必须按子赛道分文件**存储：`raw_prospects_{sub_sector_slug}.json`。这是长程任务上下文管理的关键机制——完成一个子赛道后即刻落盘，释放上下文空间。严禁将所有子赛道结果堆积在单一全局文件中。
 
 ---
 
-## 3. companies.csv
+## 3. confirmed_prospects.json
+
+Phase 3 确认搜索后的精炼输出，仅包含通过交叉验证的高可信度项目。
+
+```json
+{
+  "sector_theme": "AI Agent基础设施",
+  "confirmation_method": "exa company_research + 官网交叉验证",
+  "prospects": [
+    {
+      "company_name": "Virtue AI",
+      "website": "https://virtueai.com",
+      "funding_stage": "Seed ($3.2M)",
+      "founders": "Wei Wang, John Doe",
+      "differentiation": "提供隔离执行环境让LLM Agent安全运行外部代码",
+      "confidence": "high",
+      "hit_queries": ["agent sandbox startup", "ex-Google code sandbox startup"],
+      "confirmed_fields": ["funding_stage", "founders", "website"],
+      "unconfirmed_fields": [],
+      "sub_sector": "Agent Runtime/Sandbox",
+      "discovered_at": "2026-04-22T10:15:00Z",
+      "confirmed_at": "2026-04-22T10:45:00Z"
+    }
+  ],
+  "excluded_prospects": [
+    {
+      "company_name": "SandboxX",
+      "reason": "无法确认官网或融资信息，可能为概念项目",
+      "confidence": "low"
+    }
+  ],
+  "timestamp": "2026-04-22T10:50:00Z"
+}
+```
+
+**字段说明**：
+- `confirmation_method`：使用的确认搜索策略描述
+- `prospects`：通过确认搜索的项目，字段与 `raw_prospects.json` 一致，但增加了：
+  - `confirmed_fields`：已验证字段列表（如 `["funding_stage", "founders"]`）
+  - `unconfirmed_fields`：仍无法验证的字段列表
+  - `confirmed_at`：确认搜索完成时间戳
+- `excluded_prospects`：确认搜索中排除的低可信度项目
+  - `reason`：排除原因
+
+**重要规则**：
+- 报告生成阶段（Phase 4），**未确认字段不得出现在输出中**，不得以"待确认"形式展示
+- 若关键字段（founders、funding_stage）无法确认，必须在 `unconfirmed_fields` 中标注，report 中直接省略对应行
+
+---
+
+## 4. companies.csv
 
 Phase 3 最终输出，**必须严格兼容 weekly-recommendation 的 companies.csv 格式**。
 
@@ -129,7 +179,7 @@ RuntimeLab,,,开源Agent运行时框架支持多语言工具调用,Exa:agent run
 
 ---
 
-## 4. prospector_notes.json
+## 5. prospector_notes.json
 
 Phase 3 辅助输出，记录每个项目的完整挖掘路径，便于用户审计和追溯。
 
@@ -191,7 +241,7 @@ Phase 3 辅助输出，记录每个项目的完整挖掘路径，便于用户审
 
 ---
 
-## 5. prospector_checkpoint.json
+## 6. prospector_checkpoint.json
 
 断点续跑状态文件。
 
@@ -199,13 +249,30 @@ Phase 3 辅助输出，记录每个项目的完整挖掘路径，便于用户审
 {
   "sector_theme": "AI Agent基础设施",
   "phase": "prospecting",
-  "completed_sub_sectors": ["Agent Runtime/Sandbox"],
-  "current_sub_sector": "Agent Orchestration",
+  "completed_sub_sectors": ["Agent Runtime/Sandbox", "Agent Orchestration"],
+  "current_sub_sector": "Agent Memory",
   "completed_keywords": ["orchestration", "workflow"],
   "remaining_keywords": ["multi-agent"],
+  "summary": {
+    "total_prospects": 24,
+    "key_findings": ["Virtue AI 获 $3.2M Seed", "RuntimeLab 开源运行时"]
+  },
   "timestamp": "2026-04-22T10:30:00Z"
 }
 ```
+
+**字段说明**：
+- `sector_theme`：赛道主题
+- `phase`：当前阶段
+- `completed_sub_sectors`：已完成搜索的子赛道列表
+- `current_sub_sector`：当前正在搜索的子赛道
+- `completed_keywords` / `remaining_keywords`：当前子赛道已完成和剩余的关键词
+- `summary`：跨子赛道的轻量摘要（CoT 减负）
+  - `total_prospects`：累计挖掘的公司总数（去重后）
+  - `key_findings`：关键发现数组，每条 1 句话，控制在 3-5 条内
+  - **写入时机**：每完成一个子赛道，更新 checkpoint 时同步写入
+  - **读取时机**：Phase 3 开始时通过 checkpoint 恢复全局视角
+- `timestamp`：更新时间戳
 
 **断点续跑逻辑**：
 1. 启动时检查 `$WORKSPACE/prospector_checkpoint.json`

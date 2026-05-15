@@ -14,19 +14,26 @@ dependencies:
 npx skills add https://github.com/vercel-labs/agent-browser --skill agent-browser
 ```
 
-## ⚠️ 强制要求：必须使用浏览器自动化工具
+## ⚠️ 强制要求：浏览器自动化工具爬取 + WebSearch 仅用于定位
 
-**所有数据必须通过浏览器自动化工具（如 agent-browser）实时爬取，禁止使用 WebSearch 或其他方式估算。**
+**数据爬取必须使用浏览器自动化工具（如 agent-browser）实时进行。WebSearch / WebFetch / Tavily 只能用于「发现正确的 Google Scholar Profile URL」这一步，找到 URL 后必须立即用 agent-browser 访问并采集数据。**
 
 支持的浏览器自动化工具：
 - **agent-browser**（推荐）: `npx skills add https://github.com/vercel-labs/agent-browser --skill agent-browser`
 - **browser-use**: `pip install browser-use` 或其他浏览器自动化方案
 
 ### Google Scholar 数据采集
-必须先用浏览器自动化工具打开目标人物的 Google Scholar 主页，获取：
-1. 总引用量
-2. 按引用排序的论文列表
-3. 每篇论文的作者位置（一作/二作）、会议/期刊、引用数
+**第一步：定位 Profile URL（可用 WebSearch）**
+1. 用 WebSearch 查询："[姓名] Google Scholar" 或 "[姓名] site:scholar.google.com/citations"
+2. 从搜索结果中提取第一个 scholar.google.com/citations?user=... 链接
+3. 如名字常见导致歧义，添加机构/代表作关键词重新搜索
+
+**第二步：爬取数据（必须用 agent-browser）**
+1. 用 agent-browser 打开第一步找到的 Profile URL
+2. 获取：总引用量
+3. 获取按引用排序的论文列表
+4. 记录每篇论文的：作者位置（一作/二作）、会议/期刊、引用数
+5. ⚠️ 严禁用 WebSearch/WebFetch/Tavily 直接获取引用量或论文列表（数据会过时）
 
 ### GitHub 数据采集
 必须使用浏览器自动化工具访问 GitHub 页面，获取：
@@ -39,12 +46,24 @@ npx skills add https://github.com/vercel-labs/agent-browser --skill agent-browse
 ## 数据采集方式
 
 ### Google Scholar 数据
+**Step 1 - 定位 Profile URL（可用 WebSearch）：**
 ```
-1. 打开 https://scholar.google.com/citations?user=[USER_ID]&sortby=citstdirection
+1. WebSearch: "[姓名] Google Scholar"
+2. 提取 scholar.google.com/citations?user=... 链接
+3. 歧义时添加机构关键词重新搜索
+```
+
+**Step 2 - 爬取数据（必须用 agent-browser）：**
+```
+1. 用 agent-browser 打开 Step 1 找到的 Profile URL
 2. 获取：总引用量
 3. 获取按引用排序的论文列表
 4. 记录每篇论文的：作者位置（一作/二作/其他）、会议/期刊、引用数、年份
+   - **一作**：作者列表第一位（index == 0）。共同一作（带 `*` 标注）无论位置均按一作计
+   - **二作**：作者列表第二位（index == 1）且非共同一作
+   - **其他**：第三位及以后（index >= 2）且非共同一作
 5. 统计一作/二作顶会顶刊引用量 = 一作顶刊顶会引用量 + 二作顶刊顶会引用量（两者都要求是顶刊顶会）
+6. ⚠️ 严禁用 WebSearch/WebFetch/Tavily 直接获取引用量或论文列表
 ```
 
 ### 个人背景验证（必须执行）
@@ -439,7 +458,7 @@ npx skills add https://github.com/vercel-labs/agent-browser --skill agent-browse
 - [ ] 同类项目Stars对比完整
 
 ### 数据检查
-- [ ] 使用 **agent-browser** 实时爬取 Google Scholar（禁止用 WebSearch 估算）
+- [ ] WebSearch / Tavily 仅用于定位 Google Scholar Profile URL，找到后立即用 agent-browser 爬取
 - [ ] **必须点击 "SHOW MORE" 查看所有论文**，确保近期论文不遗漏
 - [ ] **时间线通过搜索验证**（禁止根据论文年份推测）
 - [ ] 区分一作/二作/其他位置（**共同一作按一作计入**）

@@ -7,6 +7,61 @@ description: |
 
 ---
 
+## 输出纪律
+
+本 skill 的核心目标是**高质量挖掘 + 低噪音输出**。agent 执行过程中必须遵守：
+
+- **不汇报执行过程**：发起搜索、读取文件、更新 checkpoint 等操作不需要向用户汇报
+- **只输出关键决策点**：赛道粒度判断结果、子赛道列表、最终摘要
+- **极简状态通报**（例外情况）：以下场景允许输出一句话状态，其余时间保持静默
+  - **Phase 切换时**：如 "Phase 1 完成，识别 5 个子赛道，进入 Phase 2 深度挖掘"
+  - **出错/中断时**：如 "Phase 2 中断，已完成 2/5 个子赛道，错误：API 限速"（便于断点续跑）
+  - **长时间执行无输出**（>3 分钟）：如 "仍在挖掘中，已完成 3/5 个子赛道"
+  - **关键发现时**：如 "子赛道 'Agent群聊' 发现高置信度项目 3 个，含华人创始人信号 1 个"，或 "某子赛道搜索结果为空，建议扩大关键词"
+  - **重要操作决策时**：如 "Public hype 过滤排除 OpenAI（原因：估值 $80B）"，或 "Virtue AI 融资信息存疑，启动验证搜索"，或 "Round 1 结果稀疏，启动 Round 2 反向扩散"
+- **严格控制字数**：
+  - `differentiation`（差异化亮点）≤ 80 字，1 句话
+  - `analysis_summary`（赛道总结）30-50 字
+  - `rationale`（子赛道理由）≤ 30 字
+  - Phase 3 报告：S/A 档按模板填写，B 档可简化，C 档仅列公司名 + 一句话
+
+---
+
+## 长程任务上下文管理
+
+本 skill 执行周期极长（Phase 1-3 可能涉及 30-100 次 API 调用），agent 必须主动管理上下文负载，防止原始搜索结果淹没有效信息。
+
+### 核心原则：文件系统即外部记忆
+
+agent 的上下文窗口有限，**不要把所有原始 JSON 搜索结果的完整内容长期保留在上下文中**。每个 Phase 结束后，将提取出的结构化信息写入文件，然后释放原始数据。
+
+### Phase 上下文释放规则
+
+| Phase | 写入文件 | 释放动作 |
+|-------|---------|---------|
+| Phase 1 | `sector_map.json` | 提取完子赛道后，不再引用原始搜索 JSON 的内容 |
+| Phase 2 Round 1 | `raw_prospects_{sub_sector}.json` | 每完成一轮搜索，立即提取公司写入 prospects 文件，然后清空该轮原始 JSON 的上下文引用 |
+| Phase 2 Round 2 | 追加到 `raw_prospects_{sub_sector}.json` | 同上，反向扩散的结果提取后即释放 |
+| Phase 2 Round 3 | 追加到 `raw_prospects_{sub_sector}.json` | 同上 |
+| Phase 3 | `confirmed_prospects.json` | 确认搜索完成后，只保留确认后的结构化档案，不再引用原始搜索 JSON |
+
+### 增量处理模式
+
+**禁止一次性读取所有子赛道的 raw_prospects 到上下文**。
+
+正确做法：
+1. Phase 3 开始时，按子赛道逐个读取 `raw_prospects_{sub_sector}.json`
+2. 每读一个子赛道，立即执行去重+过滤+确认搜索
+3. 将结果追加到全局的 `confirmed_prospects.json`
+4. 释放该子赛道的上下文
+5. 读取下一个子赛道
+
+### 子赛道优先级排序
+
+Phase 1 为每个子赛道标注 `batch` 优先级（`1` = 高信号优先，`2` = 常规），仅用于 Phase 2 的搜索调度。agent 自动完成排序，不中断用户确认，无需额外摘要文件。
+
+---
+
 ## 环境配置（首次使用）
 
 ### 1. API Keys
@@ -42,10 +97,15 @@ EXA_API_KEY_SECONDARY=27d98e7c-xxxx
 ```bash
 export WORKSPACE="prospecting_$(date +%Y%m%d_%H%M%S)"
 mkdir -p "$WORKSPACE"
+echo "$WORKSPACE" > .workspace_path
 echo "$WORKSPACE"
 ```
 
-> **重要**：Claude 的 Bash 工具每次调用都是独立 shell。后续**每一次 Bash 调用**都必须以 `cd "$WORKSPACE"` 开头，确保所有文件写入正确目录。
+> **重要**：Claude 的 Bash 工具每次调用都是独立 shell，环境变量不继承。后续**每一次 Bash 调用**必须先读取 `.workspace_path`：
+> ```bash
+> cd "$(cat .workspace_path)"
+> ```
+> 严禁使用相对路径 `cd "$WORKSPACE"` 或 `cd prospecting_*`，这会在新 shell 中失效。
 
 **目录规范**：
 - `user_inputs.json` — Phase 0 用户输入的基石信息
@@ -53,7 +113,8 @@ echo "$WORKSPACE"
 - `prospector_checkpoint.json` — 断点续跑状态
 - `tavily_results/` — Phase 2 所有 Tavily 搜索原始 JSON
 - `exa_results/` — Phase 2 所有 Exa 搜索原始 JSON
-- `raw_prospects.json` — Phase 2 挖掘出的原始项目列表
+- `raw_prospects_{sub_sector}.json` — Phase 2 **按子赛道分文件**存储的原始项目列表
+- `confirmed_prospects.json` — Phase 3 经确认搜索后的结构化公司档案
 - `companies.csv` — Phase 3 最终输出（兼容 weekly-recommendation）
 - `prospector_notes.json` — Phase 3 每个项目的挖掘路径和来源 query
 - `prospects_report.md` — Phase 3 投资人扫描报告（中文）
@@ -71,18 +132,22 @@ echo "$WORKSPACE"
 
 ## 启动检查清单
 
-agent 在开始挖掘前必须逐项确认：
+agent 在开始挖掘前必须逐项确认，**缺失项自动修复，修复失败才报告**：
 
 - [ ] CLI 工具：`tvly` 已安装且在 PATH 中
-- [ ] CLI 工具：`mcporter` 已安装且可调用
-- [ ] API Keys：已加载 Tavily key（含备用）
-- [ ] API Keys：已加载 Exa key（含备用）
+- [ ] CLI 工具：`mcporter` 已安装。如未安装，自动执行：`npm install -g mcporter`
+- [ ] Exa MCP：`exa-full` 已配置。配置命令必须在**工作目录**下执行（确保 config 写入项目级 `.mcporter`）：
+  ```bash
+  cd "$(cat .workspace_path)" && mcporter config add exa-full "https://mcp.exa.ai/mcp?tools=web_search_exa,web_search_advanced_exa,company_research_exa,people_search_exa,deep_search_exa&exaApiKey=$EXA_API_KEY"
+  ```
+- [ ] **mcporter 执行纪律**：所有 `mcporter call` 必须在**工作目录**下执行，禁止在后台 `&` 运行（npx 在 subshell 中会丢失 config 路径）
+- [ ] API Keys：已加载 Tavily key（主号 + `*_SECONDARY` 备用）
+- [ ] API Keys：已加载 Exa key（主号 + `*_SECONDARY` 备用）
 - [ ] 工作目录：已创建并后续 Bash 调用均会 `cd` 进入
-- [ ] 用户已确认开始（Y/n）
-- [ ] 用户已提供赛道主题
-- [ ] Phase 0 信息采集已完成（或用户选择跳过）
+- [ ] 用户已提供赛道主题（未提供则询问一次）
+- [ ] Checkpoint：如存在 `prospector_checkpoint.json`，读取并恢复进度
 
-若某项工具缺失，agent 报告问题并请求用户安装或提供替代方案，不盲目继续。
+**自动修复失败时**：向用户报告具体错误（如 npm 不可用、key 未配置），不盲目继续。
 
 ---
 
@@ -106,18 +171,18 @@ agent 在开始挖掘前必须逐项确认：
 **快速判断规则**：
 - 如果 `sector_theme` 是**单个品类词**（AI、机器人、大模型、SaaS）-> **太宽泛**
 - 如果 `sector_theme` 包含**具体技术名词**（sandbox、runtime、WASM、perception、RLHF）-> **合适**
-- 如果**不确定**，执行一次快速验证搜索：`tvly search "{theme} startup seed funding" --json --max-results 5 --depth basic`，如果前5条结果全是头部大厂 -> **太宽泛**
+- 如果**不确定**，执行一次快速验证搜索：`tvly search "{theme} startup seed funding" --json --max-results 5 --depth basic --time-range year`，如果前5条结果全是头部大厂 -> **太宽泛**
 
 ### 赛道引导与拆分（赛道过大时）
 
 当用户输入被判定为"太宽泛"或"偏宽泛"时，agent 自动执行全景扫描，从真实市场信号中提取结构化线索并聚类成 3-6 个子赛道选项。
 
-**分批次挖掘**：
-- **第一批**：自动选择最相关、信号最强的 1-2 个子赛道优先挖掘，快速产出初始结果
-- **第二批**：继续挖掘剩余的子赛道，与第一批结果合并
-- **最终**：所有子赛道的项目汇总去重，生成统一报告
+**子赛道优先级**：
+- agent 自动识别信号最强的 1-2 个方向优先挖掘
+- 所有子赛道最终都会完成，按优先级顺序执行
+- 最终汇总去重，生成统一报告
 
-**自动选择标准（第一批）**：
+**自动选择标准（高信号优先）**：
 - 融资信号最强（近期集中获得种子轮的方向优先）
 - 与用户初始 prompt 语义最接近
 - 技术差异化最明确（不与其他子赛道高度重叠）
@@ -179,17 +244,29 @@ Phase 0 已经确保赛道起点够具体（如"智能体沙箱"）。Phase 1 �
 
 ```bash
 # 全景搜索（并行发起）
-tvly search "{赛道} product types approaches" --json --max-results 10 --depth basic
-tvly search "{赛道} different implementations" --json --max-results 10 --depth basic
-mcporter call 'exa.web_search_exa(query: "{赛道} technical approaches architectures", numResults: 10)'
+tvly search "{赛道} product types approaches" --json --max-results 10 --depth basic --time-range year
+tvly search "{赛道} different implementations" --json --max-results 10 --depth basic --time-range year
+cd "$(cat .workspace_path)" && mcporter call 'exa-full.web_search_exa(query: "{赛道} technical approaches architectures", numResults: 10, type: "auto")'
 
 # 趋势与空白搜索
-tvly search "{赛道} emerging approaches new methods" --json --max-results 8 --depth basic
-tvly search "{赛道} underserved use cases" --json --max-results 8 --depth basic
+tvly search "{赛道} emerging approaches new methods" --json --max-results 8 --depth basic --time-range year
+tvly search "{赛道} underserved use cases" --json --max-results 8 --depth basic --time-range year
 
 # 学术/开源信号（可选）
-tvly search "{赛道} open source implementations github" --json --max-results 5 --depth basic
-tvly search "{赛道} research prototype commercialization" --json --max-results 5 --depth basic
+tvly search "{赛道} open source implementations github" --json --max-results 5 --depth basic --time-range year
+tvly search "{赛道} research prototype commercialization" --json --max-results 5 --depth basic --time-range year
+```
+
+**搜索 query 精准化模板**（用于过滤头部大厂，聚焦早期项目）：
+```bash
+# 早期信号限定（优先使用）
+tvly search "{赛道} startup founded 2024 2025 2026" --json --max-results 10 --depth basic --time-range year
+tvly search "{赛道} seed funding pre-seed" --json --max-results 10 --depth basic --time-range year
+tvly search "{赛道} stealth mode early stage" --json --max-results 8 --depth basic --time-range year
+
+# 创始人信号
+tvly search "ex-Google ex-OpenAI {赛道} startup founded" --json --max-results 8 --depth basic --time-range year
+tvly search "PhD {赛道} company founded 2024 2025" --json --max-results 8 --depth basic --time-range year
 ```
 
 ### 子赛道生成逻辑
@@ -216,6 +293,14 @@ tvly search "{赛道} research prototype commercialization" --json --max-results
 | `excluded_areas` | 直接排除 |
 | `investment_thesis` | 影响子赛道排序 |
 
+### 子赛道优先级标注
+
+`sector_map.json` 中每个子赛道标注 `batch`，仅用于 Phase 2 搜索调度：
+- `batch: 1` = **信号最强的 1-2 个子赛道**（优先挖掘）。判定标准：近期融资信号最密集、与用户 `investment_thesis` 最匹配、技术差异化最明确
+- `batch: 2` = 剩余子赛道
+
+agent 自动完成标注，**不中断用户确认**。
+
 ### 输出格式
 
 将分析结果写入 `$WORKSPACE/sector_map.json`。
@@ -224,6 +309,7 @@ tvly search "{赛道} research prototype commercialization" --json --max-results
 - 子赛道数量控制在 **3-6 个**，每个子赛道是同一具体赛道内的不同细分方向。
 - 每个子赛道的 `key_concepts` 应包含 **3-5 个** 技术名词，粒度比 `sector_theme` 更细。
 - `search_queries` 必须保持赛道粒度，不能上升到更宽泛的词。
+- `rationale` ≤ 30 字，`analysis_summary` 30-50 字。
 
 详见 `references/output_schema.md` 中的 sector_map 结构。
 
@@ -241,12 +327,33 @@ tvly search "{赛道} research prototype commercialization" --json --max-results
 
 **双引擎分层使用**：
 
-| 环节 | 引擎策略 | 原因 |
-|------|---------|------|
-| Phase 1 赛道解构 | 单引擎（Tavily 为主） | 目的是理解赛道结构，不需要交叉验证 |
-| Phase 2 Round 1 锚点直接搜索 | **必须双引擎并行** | 发现项目的核心轮次，Tavily 偏新闻融资、Exa 偏语义深度，互补覆盖 |
-| Phase 2 Round 2 反向扩散 | **必须双引擎并行** | 从已知项目找竞品/投资者/创始人，需要最大覆盖 |
-| Phase 2 Round 3 维度补充 | 单引擎即可（Tavily） | 查缺补漏，如果 Round 1/2 已发现足够项目，快速扫一遍即可 |
+| 环节 | Tavily | Exa (mcporter exa-full) | 原因 |
+|------|--------|------------------------|------|
+| Phase 1 赛道解构 | ✅ 主力 | ❌ 不需要 | 目的是理解赛道结构，单引擎足够 |
+| Phase 2 Round 1 锚点直接搜索 | ✅ **并行** | ✅ **并行** | 发现项目的核心轮次，Tavily 偏新闻融资、Exa 偏语义深度，互补覆盖 |
+| Phase 2 Round 2 反向扩散 | ✅ **并行** | ✅ **并行** | 从已知项目找竞品/投资者/创始人，需要最大覆盖 |
+| Phase 2 Round 3 维度补充 | ✅ 快速扫 | ❌ 不需要 | 查缺补漏，单引擎即可 |
+| Phase 3 公司信息确认 | ✅ 快速验证 | ✅ **`company_research_exa`** | Exa 公司研究工具返回结构化档案，比手动 query 更精准 |
+| Phase 3 创始人背景补充 | ✅ 辅助 | ✅ **`people_search_exa`** | Exa 人物搜索深挖创始人职业经历 |
+
+**Exa 调用方式**（统一通过 mcporter，**必须从工作目录执行**）：
+```bash
+# 标准搜索
+cd "$(cat .workspace_path)" && mcporter call 'exa-full.web_search_exa(query: "{query}", numResults: 10, type: "auto")'
+
+# 公司结构化信息（Phase 3 确认）
+cd "$(cat .workspace_path)" && mcporter call 'exa-full.company_research_exa(companyName: "{company}", numResults: 5)'
+
+# 创始人深度背景（Phase 3 补充）
+cd "$(cat .workspace_path)" && mcporter call 'exa-full.people_search_exa(query: "{founder_name} career experience", numResults: 5)'
+```
+
+> **警告**：`mcporter call` 严禁用 `&` 放入后台。npx 在 subshell 中会丢失项目级 config，导致 `Unknown MCP server 'exa-full'`。如需并行 Tavily+Exa，用同一 Bash 调用中的 `;` 或 `&&` 串行，或开两个独立的 Bash 调用。
+
+**Tavily 调用方式**：
+```bash
+tvly search "{query}" --json --max-results 10 --depth basic --time-range year
+```
 
 **详细 CLI 调用规范、错误处理、并发控制**见 `references/search_engine_strategy.md`。
 
@@ -263,10 +370,23 @@ tvly search "{赛道} research prototype commercialization" --json --max-results
 | `key_concepts` | 这些概念在 Phase 2 中作为核心搜索词，不需要从零推导 |
 | `investment_thesis` | 影响搜索的重点方向 |
 
-### 信息提取
+### 信息提取（零遗漏规则）
 
-从搜索结果中识别潜在项目，提取以下字段：
+从搜索结果中识别潜在项目时，**执行零遗漏提取**：
 
+| 字段 | 提取规则 |
+|------|---------|
+| `company_name` | **搜索结果中出现的每一个真实品牌名都必须录入**，不得以"信息太少"为由跳过。只有纯描述性短语（如"AI 客服系统"、"XX平台"）才排除。 |
+| `website` 或 `source_url` | 有就填，没有留空，`confidence` 据此降级，但不影响录入 |
+| `differentiation` | 有详细描述就提炼（≤ 80 字）；只有名字的，写"搜索结果中提及，待进一步确认" |
+| `confidence` | 信息充分的标 `high`/`medium`；只有名字的标 `low`，仍保留 |
+
+**为什么必须零遗漏**：
+- 冷门早期项目往往只出现在 1 个 query 结果中，信息极少
+- 如果因为"只出现一次"就不记录，会系统性漏掉真正的早期信号
+- `confidence` 分级就是为了区分"信息多少"，不是用来过滤"值不值得记"
+
+**提取字段**：
 ```json
 {
   "company_name": "公司名（优先使用官方品牌名）",
@@ -274,12 +394,20 @@ tvly search "{赛道} research prototype commercialization" --json --max-results
   "funding_stage": "融资阶段线索",
   "founders": "创始人姓名",
   "founder_name_signal": "high / medium / none",
-  "differentiation": "一句话差异化亮点",
-  "source_query": "发现该公司的搜索query",
+  "differentiation": "一句话差异化亮点（≤80字）",
+  "source_query": "首次发现该公司的搜索query",
   "source_engine": "tavily 或 exa",
-  "sub_sector": "所属子赛道"
+  "sub_sector": "所属子赛道",
+  "confidence": "high / medium / low",
+  "hit_queries": ["命中该公司的所有独立query"]
 }
 ```
+
+**`hit_queries` 跟踪规则**：
+- 每发现一个公司，记录首次命中的 query
+- 如果后续搜索（其他 query、其他引擎）也命中该公司，追加到 `hit_queries`
+- `confidence: high` 的判定条件之一：**2+ 个独立 query 命中**（独立 query 定义：核心关键词组合不同）
+- 双引擎交叉：同一公司在 Tavily 和 Exa 中都被发现 → 视为 2 个独立来源，优先标 `high`
 
 **融资信息时效性校验**：
 
@@ -287,7 +415,8 @@ tvly search "{赛道} research prototype commercialization" --json --max-results
 
 1. **执行验证搜索**：
    ```bash
-   tvly search "{company_name} funding series valuation 2025 2026" --json --max-results 3 --depth basic
+   tvly search "{company_name} funding series valuation 2025 2026" --json --max-results 3 --depth basic --time-range year
+   mcporter call 'exa-full.company_research_exa(companyName: "{company_name}", numResults: 3)'
    ```
 
 2. **信息可信度标注**：
@@ -299,7 +428,54 @@ tvly search "{赛道} research prototype commercialization" --json --max-results
 
 **去重**：同一子赛道内，按 `company_name` 去重（不区分大小写）。
 
-**写入**：每完成一个子赛道，将结果追加写入 `$WORKSPACE/raw_prospects.json`，并更新 `prospector_checkpoint.json`。
+**写入（原子写入 + 不可绕过检查）**：
+- 每完成一个子赛道，先写入临时文件 `raw_prospects_{sub_sector}_tmp.json`
+- 写入成功后执行 `mv` 重命名为正式文件名 `raw_prospects_{sub_sector}.json`
+- 立即更新 `prospector_checkpoint.json`（同样原子写入），记录该子赛道已完成
+- 目的：防止写入中断导致 JSON 损坏；支持断点续跑
+
+**不可绕过检查（子赛道间链式验证）**：
+开始下一个子赛道前，必须执行：
+```bash
+cd "$(cat .workspace_path)" && ls raw_prospects_{上一个子赛道}.json && cat prospector_checkpoint.json
+```
+- 如果文件不存在 → **禁止开始下一个子赛道**，回退补写
+- 如果 checkpoint 中未标记该子赛道完成 → **禁止开始下一个子赛道**，补写 checkpoint
+
+这个检查把"写文件"从可跳过的建议变成了不可绕过的关卡。
+
+**Checkpoint 强制更新规则**：
+每完成以下任一里程碑，必须更新 `prospector_checkpoint.json`：
+- 一个子赛道的 Round 1 完成
+- 一个子赛道的 Round 2 完成
+- 一个子赛道的全部搜索完成（标记 `completed_sub_sectors`，并同步更新 `summary`）
+- Phase 3 的公司信息确认完成（标记 `phase3_confirmation_done`）
+
+**Checkpoint 内置摘要（CoT 减负）**：
+每完成一个子赛道，在更新 checkpoint 时同步写入 `summary` 字段：
+- `total_prospects`：累计挖掘的公司总数（去重后）
+- `key_findings`：该子赛道的 1-3 条关键发现（如融资亮点、华人创始人信号）
+
+Phase 3 开始时读取 checkpoint，通过 `summary` 快速恢复全局视角，无需回顾每个子赛道的完整搜索历史。
+
+**为什么 checkpoint 容易被跳过**：长程任务中 agent 倾向于认为"不会中断"而跳过 checkpoint。子赛道间链式验证把 checkpoint 变成了即时关卡——不更新 checkpoint，下一个子赛道就开不了。
+
+Checkpoint 结构示例：
+```json
+{
+  "sector_theme": "AI语音Agent",
+  "phase": "prospecting",
+  "completed_sub_sectors": ["实时语音对话Agent", "端到端语音Agent"],
+  "current_sub_sector": "Agent Memory",
+  "current_round": "Round 2",
+  "summary": {
+    "total_prospects": 24,
+    "key_findings": ["Virtue AI 获 $3.2M Seed", "RuntimeLab 开源运行时"]
+  },
+  "phase3_confirmation_done": false,
+  "timestamp": "2026-05-14T17:00:00Z"
+}
+```
 
 ---
 
@@ -310,21 +486,40 @@ tvly search "{赛道} research prototype commercialization" --json --max-results
 ### 步骤
 
 1. **全局去重**
-   - 读取 `raw_prospects.json`
+   - 读取所有 `raw_prospects_*.json`
    - 按 `company_name` 全局去重（不区分大小写）
    - 若同一公司出现在多个子赛道，合并 `sub_sector` 为逗号分隔列表
+   - 合并 `hit_queries` 为并集
 
 2. **Public Hype 过滤**
    - 依据 `references/public_hype_filter.md` 的规则，排除已过度曝光的项目
    - 对不确定的公司，用搜索验证
 
-3. **公司信息确认搜索**
-   - 对每个保留的公司，执行一次定向确认搜索
-   - 验证并修正融资信息，补充创始人背景
+3. **公司信息确认搜索（Exa 结构化工具优先）—— 强制门控**
+   - **本步骤为硬性阻塞项**：未完成确认搜索，不得进入步骤 4-7
+   - 对每个保留的公司，优先执行：
+     ```bash
+     cd "$(cat .workspace_path)" && mcporter call 'exa-full.company_research_exa(companyName: "{company_name}", numResults: 5)'
+     ```
+   - 如 `company_research_exa` 返回不足，补充：
+     ```bash
+     tvly search "{company_name} funding founders overview" --json --max-results 5 --depth basic --time-range year
+     cd "$(cat .workspace_path)" && mcporter call 'exa-full.people_search_exa(query: "{founder_name} career experience", numResults: 5)'
+     ```
+   - **确认搜索的排除哲学**：
+     - **核心原则**：搜不到更多信息 ≠ 排除。早期项目网上信息少是正常的。
+     - **只有明确证伪才排除**：
+       - 证实为上市公司 / 估值 ≥$1B / 已倒闭 / 赛道完全不对
+       - 这类项目进 `excluded_prospects`，记录排除原因
+     - **搜不到信息 = 保持原样**：维持原 `confidence`，不因为 confirmation 搜不到而降级或排除
+     - **验证通过 = 升级**：确认融资/创始人/官网后，`confidence` 提升，`confirmed_fields` 标注
+   - **输出纪律**：确认搜索的结果写入 `confirmed_prospects.json`（同样原子写入），与 `raw_prospects.json` 分离
+   - **未确认处理**：如果某公司的融资/创始人信息经确认后仍无法获取，在报告中直接**省略该行**，不写"待确认"
    - 详见 `references/report_generation.md`
 
 4. **亮点关键词提取**
    - 必须是公司自身的技术/产品特点，而非搜索锚点词
+   - 从确认搜索结果中提取 3-5 个差异化关键词
    - 详见 `references/report_generation.md`
 
 5. **生成 companies.csv**
@@ -333,11 +528,17 @@ tvly search "{赛道} research prototype commercialization" --json --max-results
    - 详见 `references/output_schema.md`
 
 6. **生成 prospector_notes.json**
-   - 记录每个项目的完整挖掘路径
+   - 记录每个项目的完整挖掘路径（含所有 `hit_queries`）
    - 详见 `references/output_schema.md`
 
 7. **生成 prospects_report.md（投资人扫描报告）**
    - 按推荐度排序，全文中文
+   - **字数纪律**：S/A 档按模板完整填写；B 档可省略创始人背景细节；C 档仅列 `公司名 | 一句话亮点 | 来源query`
+   - **未确认信息处理**：如果创始人或融资信息经 Phase 3 确认后仍无法获取，**直接省略该维度行**，不写"待确认""未知"等占位符，保持表格紧凑
+   - **非早期项目单列**：
+     - Series C 及以后、累计融资 ≥$100M 的项目**不放入 C 档**
+     - 在报告末尾单设「非早期观察」区域，用一句话说明其赛道相关性
+     - 目的：避免 C 档出现"待验证"和"已知 Series C"的矛盾感；给投资人完整的赛道版图
    - 详见 `references/report_generation.md`
 
 ---
@@ -350,13 +551,12 @@ tvly search "{赛道} research prototype commercialization" --json --max-results
 2. **Phase 0**：自动采集用户输入，判断赛道粒度
    - 够具体 → 直接进入 Phase 1
    - 太宽泛 → 自动扫描并聚类出 3-6 个子赛道，全部进入 Phase 1
-3. **Phase 1**：赛道解构，产出 `sector_map.json`（子赛道按信号强度标记优先级）
-4. **Phase 2（第一批）**：优先挖掘信号最强的 1-2 个子赛道，快速产出初始结果
-5. **Phase 2（第二批）**：继续挖掘剩余子赛道，与第一批结果合并
-6. **Phase 3**：全局去重、Public Hype 过滤、生成 `companies.csv`、`prospector_notes.json`、`prospects_report.md`
-7. **汇报**：向用户汇报挖掘结果摘要（公司总数、各子赛道分布、Top 5 项目、挖掘路径摘要），并告知文件路径
+3. **Phase 1**：赛道解构，产出 `sector_map.json`（子赛道按信号强度标注优先级 `batch`，用于 Phase 2 调度）
+4. **Phase 2**：按 `batch` 优先级顺序逐个挖掘子赛道（高信号方向优先），每完成一个子赛道即落盘释放上下文
+5. **Phase 3**：全局去重、Public Hype 过滤、生成 `companies.csv`、`prospector_notes.json`、`prospects_report.md`
+6. **汇报**：向用户汇报挖掘结果摘要（公司总数、各子赛道分布、Top 5 项目、挖掘路径摘要），并告知文件路径
 
-> **关键**：所有拆分出的子赛道最终都会被挖掘，第一批优先产出高信号方向，第二批补齐剩余方向。整个过程全自动，无需中途确认。
+> **关键**：所有拆分出的子赛道最终都会被挖掘，按信号强度优先调度。整个过程全自动，无需中途确认。
 
 ---
 

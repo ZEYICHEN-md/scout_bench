@@ -19,7 +19,7 @@
 对不确定的公司，执行快速验证搜索：
 
 ```bash
-tvly search "{company_name} valuation funding IPO" --json --max-results 3 --depth basic
+tvly search "{company_name} valuation funding IPO" --json --max-results 3 --depth basic --time-range year
 ```
 
 ---
@@ -29,7 +29,7 @@ tvly search "{company_name} valuation funding IPO" --json --max-results 3 --dept
 对每个保留的公司，执行一次**定向确认搜索**：
 
 ```bash
-tvly search "{company_name} funding founders overview" --json --max-results 5 --depth basic
+tvly search "{company_name} funding founders overview" --json --max-results 5 --depth basic --time-range year
 ```
 
 **目的**：
@@ -37,10 +37,18 @@ tvly search "{company_name} funding founders overview" --json --max-results 5 --
 - 补充创始人背景（姓名、前公司、学历）
 - 获取更完整的公司介绍（产品形态、核心能力、差异化）
 
+**确认搜索的排除哲学**（核心规则）：
+- **搜不到更多信息 ≠ 排除**：早期项目网上信息少是正常的，不得因为 confirmation 搜不到而降级或排除
+- **只有明确证伪才排除**：
+  - 证实为上市公司 / 估值 ≥$1B / 已倒闭 / 赛道完全不对
+  - 这类项目进 `excluded_prospects`，记录排除原因
+- **验证通过 = 升级**：确认融资/创始人/官网后，`confidence` 提升，`confirmed_fields` 标注
+- **搜不到 = 保持原样**：维持原 `confidence` 和原始信息，不额外标注"待确认"
+
 **信息更新规则**：
 - 确认搜索的结果**覆盖** Phase 2 的原始信息（以最新为准）
 - 如果融资信息与之前矛盾 → 更新并标注 `融资信息已更新`
-- 如果仍然无法确认 → 标注 `融资信息待确认`
+- 如果仍然无法确认 → **不标注**，直接保持原样（未确认字段在报告中直接省略）
 
 ---
 
@@ -87,6 +95,19 @@ company_name,rank,score,reason,source,track,note
 
 ---
 
+## 字数纪律
+
+报告全文中文，公司名保留英文。严格控制各字段字数，杜绝 GenAI 废话：
+
+| 字段 | 上限 | 要求 |
+|------|------|------|
+| `differentiation` | ≤ 80 字 | 1 句话说明差异化，禁止复制搜索锚点词 |
+| `analysis_summary` | 30-50 字 | 赛道总结，不含修饰语 |
+| `rationale` | ≤ 30 字 | 子赛道拆分理由 |
+| S/A 档公司描述 | 按模板 | 完整填写所有维度 |
+| B 档公司描述 | 可简化 | 保留核心信息，省略创始人细节 |
+| C 档公司描述 | 极简 | 仅 `公司名 \| 一句话亮点 \| 来源query` |
+
 ## 7. 生成 prospects_report.md（投资人扫描报告）
 
 按**推荐度排序**，方便投资人快速扫描。
@@ -127,7 +148,7 @@ company_name,rank,score,reason,source,track,note
 > 生成时间：{timestamp}
 > 挖掘引擎：Tavily + Exa
 > 总项目数：{count}
-> 高优先级：{S档数量} | 重点关注：{A档数量} | 中优先级：{B档数量} | 待验证：{C档数量}
+> 高优先级：{S档数量} | 重点关注：{A档数量} | 中优先级：{B档数量} | 待验证：{C档数量} | 非早期观察：{非早期数量}
 
 ---
 
@@ -138,7 +159,7 @@ company_name,rank,score,reason,source,track,note
 | 初始锚点 | {用户提及的参考公司 / 关键概念，如 e2b, code sandbox} |
 | 扩散锚点 | {Round 2 反向搜索滚动发现的新锚点，如 Daytona → Modal → Blaxel} |
 | 核心关键词 | {贯穿本次挖掘的 3-5 个技术/场景关键词} |
-| 子赛道覆盖 | {第一批 + 第二批覆盖的所有子赛道名称} |
+| 子赛道覆盖 | {按优先级调度覆盖的所有子赛道名称} |
 | 关键发现 | {从某个锚点扩散出的重要线索，如 "从 Daytona 的投资者 Bessemer 发现 2 个同赛道项目"} |
 
 ---
@@ -167,6 +188,14 @@ company_name,rank,score,reason,source,track,note
 ## C 档 -- 待验证线索
 
 ...（仅列公司名称 + 一句话 + 来源 query）
+
+## 非早期观察（赛道版图参考）
+
+> 以下项目融资阶段为 Series B 及以后，或累计融资 ≥$50M，已过最典型的早期投资窗口，但仍在赛道版图中具有参考意义。
+
+| 公司 | 一句话亮点 | 融资阶段 | 来源query |
+|------|-----------|----------|----------|
+| {company_name} | {differentiation} | {funding_stage} | {source_query} |
 ```
 
 ### 注意事项

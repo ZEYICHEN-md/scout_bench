@@ -14,13 +14,13 @@
 
 ```bash
 # 融资热度扫描 —— 看哪些细分方向在拿钱
-tvly search "{宽泛主题} startup funding landscape 2026" --json --max-results 10 --depth basic
+tvly search "{宽泛主题} startup funding landscape 2026" --json --max-results 10 --depth basic --time-range year
 
 # 技术趋势扫描 —— 看有哪些不同的技术路线
-tvly search "{宽泛主题} emerging approaches different implementations" --json --max-results 10 --depth basic
+tvly search "{宽泛主题} emerging approaches different implementations" --json --max-results 10 --depth basic --time-range year
 
 # 语义深度扫描（Exa）—— 找非热门的隐蔽方向
-mcporter call 'exa.web_search_exa(query: "{宽泛主题} technical approaches architectures", numResults: 10)'
+mcporter call 'exa-full.web_search_exa(query: "{宽泛主题} technical approaches architectures", numResults: 10, type: "auto")'
 ```
 
 ---
@@ -68,37 +68,27 @@ mcporter call 'exa.web_search_exa(query: "{宽泛主题} technical approaches ar
 
 ---
 
-## 步骤 5：呈现选项，让用户选 1-2 个
+## 步骤 5：自动选择并分批次挖掘
+
+agent 根据信号强度自动选择，**不中断用户确认**。
+
+**自动分批次规则**：
+
+- **Batch 1**：自动选择信号最强的 1-2 个子赛道优先挖掘
+  - 判定标准（按优先级）：近期融资信号最密集、与用户 `investment_thesis` 最匹配、技术差异化最明确
+- **Batch 2**：剩余所有子赛道继续挖掘，与 Batch 1 结果合并
+- **最终**：所有子赛道的项目汇总去重，生成统一报告
 
 **示例**（用户说"帮我看看 AI Agent 领域"）：
 
-```
-"AI Agent" 范围很大，我快速扫描了当前市场的融资和创业信号，
-建议从以下具体方向中选 1-2 个深入挖掘：
+agent 扫描后会自动识别出 5 个方向，并按信号强度排序：
 
-  1. Agent 执行环境 / Sandbox
-     -> 让LLM安全运行代码/浏览器/文件操作（如 e2b, Daytona）
-     -> 信号：近半年 5+ 种子轮，a16z/Bessemer 均有布局
+| 批次 | 子赛道 | 选择理由 |
+|------|--------|----------|
+| Batch 1 | Agent 执行环境 / Sandbox | 近半年 5+ 种子轮，a16z/Bessemer 均有布局，融资信号最强 |
+| Batch 1 | Agent 编排与调度 / Orchestration | 企业需求快速增长，与用户"看好企业级 Agent 基础设施"的 thesis 最匹配 |
+| Batch 2 | Agent 记忆与状态 / Memory | 融资热度上升，但信号密度低于前两者 |
+| Batch 2 | Agent 安全与对齐 / Guardrails | 大企业刚需，但早期项目数量较少 |
+| Batch 2 | Agent 工具集成 / Tooling | 生态扩展快，但项目同质化程度较高 |
 
-  2. Agent 编排与调度 / Orchestration
-     -> 多Agent协作、工作流编排（如 LangGraph, CrewAI）
-     -> 信号：企业需求快速增长，开源社区活跃
-
-  3. Agent 记忆与状态 / Memory
-     -> 上下文持久化、长期记忆、知识图谱（如 Mem0）
-     -> 信号：从"玩具"转向企业级，2026年融资热度上升
-
-  4. Agent 安全与对齐 / Guardrails
-     -> 输出校验、行为护栏、策略控制（如 Guardrails AI）
-     -> 信号：大企业采购刚需，合规驱动
-
-  5. Agent 工具集成 / Tooling
-     -> MCP协议、Function Calling中间件、工具市场
-     -> 信号：Anthropic推MCP后生态快速扩展
-
-你可以：
-- 回复数字选 1-2 个（如"1 和 3"）
-- 或者直接给我一个更具体的赛道词（如"agent 代码沙箱"）
-```
-
-**用户选择后**：将用户选的方向作为新的 `sector_theme`，进入 Phase 1（赛道解构）。未被选的方向丢弃，不保留在上下文中。
+agent 自动将 Sandbox 和 Orchestration 作为 Batch 1 优先挖掘，其余进入 Batch 2，整个过程无需用户介入。

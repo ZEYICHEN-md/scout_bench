@@ -32,7 +32,7 @@
 当 agent 对一个公司是否属于 public hype 不确定时，执行快速验证：
 
 ```bash
-tvly search "{company_name} valuation funding IPO series" --json --max-results 3 --depth basic
+tvly search "{company_name} valuation funding IPO series" --json --max-results 3 --depth basic --time-range year
 ```
 
 **验证标准**：
@@ -66,25 +66,26 @@ tvly search "{company_name} valuation funding IPO series" --json --max-results 3
 
 ---
 
-## 软性标记（不强制排除，但需标注）
+## 软性标记（不强制排除，单列非早期观察区）
 
-有些公司**未达到硬性排除阈值**，但已经过了最典型的早期投资窗口。这类公司**不强制排除**，而是保留在结果中，并在 `note` 或 `prospects_report.md` 中标注，让投资人自行判断。
+有些公司**未达到硬性排除阈值**，但已经过了最典型的早期投资窗口。这类公司**不强制排除**，也不在 S/A/B/C 档中评分，而是单独列入报告的「非早期观察」区域。
 
 **触发条件**：
-- 融资阶段为 **Series B 及以后**
-- 或累计融资额 **≥ $50M**
+- 融资阶段为 **Series C 及以后**
+- 或累计融资额 **≥ $100M**
 - 或在开发者/投资圈已有较高知名度（如频繁出现在对比文章、benchmark 中）
 
 **处理方式**：
-- 保留在 `companies.csv` 中
-- 在 `note` 字段标注：`非早期，Series B+，已过种子窗口`
-- 在 `prospects_report.md` 中下调一档（如 S→A，A→B）或单独列出
+- 保留在 `companies.csv` 中，`note` 字段标注：`非早期，Series B+`
+- 在 `prospects_report.md` 中**不进入 S/A/B/C 档评分**
+- 在报告末尾单设「非早期观察」区域，仅列 `公司名 | 一句话亮点 | 融资阶段 | 来源query`
+- **严禁将非早期项目放入 C 档**：C 档是"待验证线索"，非早期项目是"已知已过早期窗口"，两者逻辑矛盾
 
 **为什么不直接排除**：
 - sector-prospector 的定位是**信息发现和收集**，不是投资决策
 - 某些 Series B 公司如果处于**非常小众的细分赛道**或**近期有重大技术突破**，仍可能有投资价值
 - 投资人可能有不同的投资阶段偏好（如成长期基金）
-- 最终的投资判断应交给 `weekly-recommendation` 的完整分析流程
+- 给投资人完整的赛道版图，避免"为什么没提到 XX"的疑问
 
 ---
 
