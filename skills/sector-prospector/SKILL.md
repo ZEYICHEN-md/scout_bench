@@ -331,7 +331,7 @@ agent 自动完成标注，**不中断用户确认**。
 |------|--------|------------------------|------|
 | Phase 1 赛道解构 | ✅ 主力 | ❌ 不需要 | 目的是理解赛道结构，单引擎足够 |
 | Phase 2 Round 1 锚点直接搜索 | ✅ **并行** | ✅ **并行** | 发现项目的核心轮次，Tavily 偏新闻融资、Exa 偏语义深度，互补覆盖 |
-| Phase 2 Round 2 反向扩散 | ✅ **并行** | ✅ **并行** | 从已知项目找竞品/投资者/创始人，需要最大覆盖 |
+| Phase 2 Round 2 反向扩散 | ✅ **并行** | ✅ **并行** | 从已知项目找竞品/投资者/创始人/技术栈，以及从技术关键词和应用场景做语义扩展，需要最大覆盖 |
 | Phase 2 Round 3 维度补充 | ✅ 快速扫 | ❌ 不需要 | 查缺补漏，单引擎即可 |
 | Phase 3 公司信息确认 | ✅ 快速验证 | ✅ **`company_research_exa`** | Exa 公司研究工具返回结构化档案，比手动 query 更精准 |
 | Phase 3 创始人背景补充 | ✅ 辅助 | ✅ **`people_search_exa`** | Exa 人物搜索深挖创始人职业经历 |
@@ -578,7 +578,7 @@ Checkpoint 结构示例：
 
 | 文件 | 说明 |
 |------|------|
-| `references/discovery_strategies.md` | Phase 2 的 Anchor & Expand 搜索模型、6 大搜索组合策略 |
+| `references/discovery_strategies.md` | Phase 2 的 Anchor & Expand 搜索模型、8 大搜索组合策略 |
 | `references/public_hype_filter.md` | Public hype 过滤规则：已上市、融资额、估值阈值、常见独角兽名单 |
 | `references/output_schema.md` | 所有输出文件的格式规范（JSON 结构、CSV 格式、checkpoint 结构） |
 | `references/phase0_sector_splitting.md` | 赛道过大时的拆分方法论：全景扫描 -> 提取线索 -> 聚类 -> 用户选择 |

@@ -186,18 +186,29 @@ mcporter call 'exa-full.web_search_exa(query: "Python sandbox for LLM agents", n
 
 **Round 2: 反向扩散**
 
-从 Round 1 发现的项目（如 Daytona、CodeSandbox、Modal）反向搜索：
+从 Round 1 发现的项目、技术关键词、应用场景反向搜索，共 6 条扩散路径：
 
 ```bash
-# 找竞争对手
-tvly search "Daytona competitors alternatives" --json --max-results 10 --depth basic --time-range year
-mcporter call 'exa-full.web_search_exa(query: "companies like Modal Labs code execution", numResults: 10, type: "auto")'
+# 2A 生态扩散：找上下游和替代方案
+tvly search "Daytona integration partners ecosystem" --json --max-results 10 --depth basic --time-range year
 
-# 找投资者的其他 portfolio
+# 2B 投资者扩散：从已知公司找 VC，再搜该 VC 的其他 portfolio
 tvly search "Daytona funding investor portfolio" --json --max-results 10 --depth basic --time-range year
+tvly search "a16z sandbox startup" --json --max-results 10 --depth basic --time-range year
 
-# 找创始人背景
-tvly search "Daytona founders ex-Google ex-OpenAI" --json --max-results 10 --depth basic --time-range year
+# 2C 创始人扩散：从创始人背景挖人脉网络
+tvly search "Daytona founders background" --json --max-results 10 --depth basic --time-range year
+
+# 2D 技术扩散：从公司技术栈找同技术的其他公司
+tvly search "Daytona technology stack" --json --max-results 10 --depth basic --time-range year
+
+# 2E 技术语义扩展：从技术关键词发现替代技术路线
+tvly search "WASM runtime vs alternative" --json --max-results 10 --depth basic --time-range year
+tvly search "gVisor startup" --json --max-results 10 --depth basic --time-range year
+
+# 2F 应用场景语义扩展：从已知场景发现细分场景
+tvly search "code execution use cases" --json --max-results 10 --depth basic --time-range year
+tvly search "prior authorization AI startup" --json --max-results 10 --depth basic --time-range year
 ```
 
 **Round 3: 维度补充**

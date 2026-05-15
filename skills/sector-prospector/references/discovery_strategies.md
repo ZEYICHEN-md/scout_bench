@@ -107,22 +107,18 @@ Round 3: 维度补充搜索
 
 **为什么融资信号 query 放在 Round 1**：
 - 融资信号 query（`seed funding`、`founded 2024 2025`）直接命中融资新闻，是发现早期项目最高效的路径
-- 不受"competitor 文章只写知名公司"的偏差影响
+- 融资新闻天然覆盖所有阶段的公司，不受知名度偏差影响
 - 作为 Round 1 的"基础盘"，确保每个子赛道至少有 3-5 个高可信度早期项目
 
 ---
 
 ### Round 2: 锚点反向扩散（Reverse Expansion）
 
-**目标**：从 Round 1 发现的 3-5 个代表性项目出发，反向挖掘其生态。
+**目标**：从 Round 1 的产出出发做反向扩散。包括从发现的项目扩散（竞品、投资者、创始人、技术栈），以及从已知技术关键词扩散（技术变体、替代路线、技术栈交叉）。
 
 **触发条件**：Round 1 完成后，必须执行。这是发现"隐藏项目"的关键轮次。
 
-#### 2A. 生态扩散（competitor 降级为辅助）
-
-**competitor 搜索的问题**：competitor 类文章天然只写已有一定知名度的公司，真正的新项目极少出现在 competitor 列表中。因此 competitor 搜索**不适合作为主力扩散路径**，只作为辅助。
-
-**但不等于完全放弃**：alternatives 搜索仍有价值——"替代方案"往往意味着新公司用**不同技术路线**做类似的事，这正是发现差异化早期项目的信号。
+#### 2A. 生态扩散
 
 **生态扩散 query 集**（按优先级执行）：
 
@@ -195,6 +191,102 @@ Round 3: 维度补充搜索
 "{company_A} github"
 → 发现开源项目 → 搜 "{project_name} commercial"
 ```
+
+#### 2E. 技术语义扩展
+
+**目标**：从已知技术关键词出发（包括 Phase 1 的 `key_concepts` 和 Round 1/2 中新发现的技术词），发现同领域的技术变体、替代方案或底层技术栈，用这些**新技术词作为新锚点**去搜 startup。
+
+**触发条件**：每完成一个子赛道的 Round 1 后执行；或在 Round 2 其他扩散路径中遇到新的技术关键词时触发。
+
+**技术词发现 query 集**：
+
+```
+# 1. 技术对比与变体发现（从已知技术词找替代/关联技术）
+"{tech_keyword} vs"                              → 发现对比文章中提到的替代技术
+"{tech_keyword} alternative technology"
+"{tech_keyword} comparison different approaches"
+"{tech_keyword} vs traditional approach"
+
+# 2. 技术栈组合发现（从技术实现细节挖关键词）
+"{tech_keyword} stack architecture"
+"{tech_keyword} underlying technology"
+"how does {tech_keyword} work internally"
+"{tech_keyword} implementation details"
+```
+
+**从上述搜索结果中提取新技术词**，然后执行：
+
+```
+# 3. 用新技术词搜 startup
+"{new_tech_keyword} startup"
+"{new_tech_keyword} company founded"
+"{new_tech_keyword} commercial"
+"{new_tech_keyword} seed funding"
+
+# 4. 技术路线交叉（两个技术词的交叉点往往是最隐蔽的创业方向）
+"{tech_keyword_A} and {tech_keyword_B} startup"
+"{new_tech_keyword} {sector_theme} company"
+```
+
+**示例**（以 "WASM sandbox" 为起点）：
+- `"WASM sandbox vs"` → 发现对比文章中提到 **gVisor**, **seccomp-bpf**, **Firecracker microVM**
+- `"gVisor startup"` → 发现用 gVisor 做安全隔离的早期项目
+- `"Firecracker microVM company founded"` → 发现基于 Firecracker 的 Serverless 沙箱初创公司
+- `"WASM sandbox underlying technology"` → 发现 **capabilities-based security**, **software fault isolation** 等概念
+- `"capabilities-based security startup"` → 命中一个完全不同的技术路线的早期项目
+
+**为什么有效**：
+- 技术对比文章和架构指南天然会提到**替代技术路线**，这些往往是差异化创业的切入点
+- 底层技术栈关键词（如 seccomp-bpf, gVisor）在主流媒体中曝光度低，但精准度高
+- 技术路线交叉点（如 "WASM + confidential computing"）的竞争密度最低
+
+---
+
+#### 2F. 应用场景语义扩展
+
+**目标**：从已知应用场景出发，发现同领域的细分场景、上下游场景或关联场景，用**新场景 + 技术关键词**作为新锚点去搜 startup。
+
+**触发条件**：每完成一个子赛道的 Round 1 后执行；或在 Round 2 其他扩散路径中遇到新的应用场景时触发。
+
+**场景词发现 query 集**：
+
+```
+# 1. 场景细分与关联发现（从已知场景挖更细的切口）
+"{application_scene} use cases"                    → 发现该场景下的细分 workflow
+"{application_scene} workflow steps"
+"{application_scene} sub-applications"
+"{application_scene} vs"                           → 看不同场景间的对比和替代关系
+
+# 2. 场景上下游（发现相邻场景的新公司）
+"before {application_scene} after {application_scene} tools"
+"{application_scene} upstream downstream"
+"{application_scene} ecosystem"
+```
+
+**从上述搜索结果中提取新场景词**，然后执行：
+
+```
+# 3. 用新场景 + 技术词搜 startup
+"{new_scene} {key_concept} startup"
+"{new_scene} {key_concept} company founded"
+"{new_scene} {key_concept} seed funding"
+
+# 4. 场景交叉（两个场景的交叉点往往是竞争盲区）
+"{scene_A} and {scene_B} {key_concept} startup"
+"{new_scene} automation startup"
+```
+
+**示例**（以 "healthcare" + "AI agent" 为起点）：
+- `"healthcare AI agent use cases"` → 发现 **clinical documentation**, **prior authorization**, **medical triage**
+- `"prior authorization AI startup"` → 发现只做保险预授权这个细分场景的早期项目
+- `"before clinical documentation after clinical documentation tools"` → 发现 **medical scribing**, **EHR integration** 等相邻场景
+- `"medical triage vs prior authorization"` → 对比文章中可能提到 **patient intake**, **referral management** 等新场景
+- `"patient intake AI agent startup"` → 命中又一个差异化切入点
+
+**为什么有效**：
+- 垂直场景的细分程度比技术词更深，大厂通常只做顶层场景（"healthcare AI"），细分场景（"prior authorization automation"）留给早期团队
+- 场景上下游和 workflow steps 能发现"同一链条上的不同创业机会"
+- 场景对比文章会提到很多你原本想不到的细分切口
 
 ---
 
@@ -326,8 +418,9 @@ Li, Zhang, Wang, Liu, Chen, Yang, Huang, Zhao, Zhou, Wu, Xu, Sun, Ma, Zhu, Hu, G
 |------|------|
 | Round 1 融资信号 query 已发现 8+ 个高可信度项目 | 重点做 Round 2（投资者/创始人扩散），Round 3 可选 |
 | Round 1 只发现 3-5 个项目 | 必须做 Round 2 + Round 3 |
-| Round 2 生态扩散返回大量已知平台 | 停止生态扩散，转向投资者/创始人扩散 |
-| 某子赛道技术属性强 | 优先 Round 3B（开源/学术） |
+| Round 2 生态扩散返回大量已知平台 | 停止生态扩散，转向投资者/创始人/技术语义扩展 |
+| Round 2 技术语义扩展发现大量新技术词 | 优先深挖这些新技术词的 startup 结果，暂停生态扩散 |
+| 某子赛道技术属性强 | 优先 Round 2E（技术语义扩展）和 Round 3B（开源/学术） |
 | 某子赛道应用属性强 | 优先 Round 3C（垂直场景） |
 | 有 reference_company | Round 1 优先执行投资者扩散 + 生态扩散 |
 
