@@ -294,7 +294,7 @@ npx skills add https://github.com/vercel-labs/agent-browser --skill agent-browse
 - [趋势2：在这些领域/研究方向中中尝试解决什么问题]
 - [趋势3：与之前工作的关联]
 
-> **⚠️ 重要**：必须使用 agent-browser **点击 "SHOW MORE" 查看所有论文**，确保近期论文不会因为引用量低而遗漏。
+> **⚠️ 重要**：必须使用 agent-browser **反复点击 "SHOW MORE" 直到无法继续加载**，确保近期论文不会因为引用量低而遗漏。
 >
 > **筛选标准**：近2年（[年份]至今）+ 一作/二作 + 顶会顶刊。近期论文引用量可能较低，但能反映研究方向趋势。
 >
@@ -310,7 +310,7 @@ npx skills add https://github.com/vercel-labs/agent-browser --skill agent-browse
 
 
 
-**说明**：以上数据通过agent-browser于[日期]从Google Scholar实时爬取，已查看所有论文确保不遗漏。
+**说明**：以上数据通过agent-browser于[日期]从Google Scholar实时爬取，已反复点击 SHOW MORE 加载全部论文。
 
 ### [姓名]研究领域通俗解释：[核心细分研究领域]
 
@@ -391,7 +391,7 @@ npx skills add https://github.com/vercel-labs/agent-browser --skill agent-browse
 
 **数据口径说明**：
 - **一作/二作顶会顶刊引用**：一作顶刊顶会引用量 + 二作顶刊顶会引用量（两者都要求是顶刊顶会）
-- **顶会顶刊认定**：严格参照本 skill 的 `references/top_venues.md`，涵盖 ML、CV、Robotics、NLP、Data Mining 六大领域及跨学科顶刊。Nature/Science/PNAS 仅限 AI/ML/CS 直接相关主题计入。arXiv 预印本按该文档规则处理。
+- **顶会顶刊认定**：按 `references/top_venues.md` 的 Normalization Rules 和 aliases 判定；venue 被严重截断导致规则无法匹配时，以论文标题搜索确认。arXiv 预印本按该文档规则处理。
 - **总引用量**：Google Scholar显示的全部论文引用总和
 - **GitHub Stars**：个人主要开源项目的Stars总和
 
@@ -450,7 +450,7 @@ npx skills add https://github.com/vercel-labs/agent-browser --skill agent-browse
 - [ ] 同赛道排名表格完整（含华人对标和非华人对标）
 - [ ] 一作/二作顶会顶刊引用量合并统计（不分开）
 - [ ] **重点论文梳理**：按领域分组，组内综合排序，研究内容详细
-- [ ] **近期论文梳理**：近2年 + 一作/二作 + 顶会顶刊（⚠️ 必须点击 SHOW MORE 查看所有论文）
+- [ ] **近期论文梳理**：近2年 + 一作/二作 + 顶会顶刊（⚠️ 反复点击 "SHOW MORE" 直到无法继续加载）
 - [ ] **核心论文详细介绍**：含金量、解决问题、方法步骤、突破、局限
 - [ ] 研究内容**详细描述**（1-3句），标签**精简**（2-4字）
 - [ ] 有具体的举例说明和通俗类比
@@ -459,7 +459,7 @@ npx skills add https://github.com/vercel-labs/agent-browser --skill agent-browse
 
 ### 数据检查
 - [ ] WebSearch / Tavily 仅用于定位 Google Scholar Profile URL，找到后立即用 agent-browser 爬取
-- [ ] **必须点击 "SHOW MORE" 查看所有论文**，确保近期论文不遗漏
+- [ ] **反复点击 "SHOW MORE" 直到无法继续加载**，确保近期论文不遗漏
 - [ ] **时间线通过搜索验证**（禁止根据论文年份推测）
 - [ ] 区分一作/二作/其他位置（**共同一作按一作计入**）
 - [ ] 区分顶会顶刊/非顶会顶刊

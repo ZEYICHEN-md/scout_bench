@@ -59,13 +59,13 @@ npx skills add https://github.com/vercel-labs/agent-browser --skill agent-browse
 
 **只记录以下论文**到 `{name}_papers_raw.jsonl`，其他论文直接丢弃：
 1. **作者列表前 10 位内包含目标学者**的论文（这些可能是一二作）
-2. **引用量排名前 30** 的论文（确保 Top 5 池子足够大）
+2. **引用量排名前 10** 的论文（确保 Top 5 池子足够大）
 
-> 被截断在 `...` 后面且引用量不在前 30 的论文 → 直接丢弃（不可能是一二作，也不可能进 Top 5）
+> 被截断在 `...` 后面且引用量不在前 10 的论文 → 直接丢弃（不可能是一二作，也不可能进 Top 5）
 
 每条记录：`{"title": "...", "authors": ["..."], "venue": "...", "year": 2024, "citations": 123}`
 
-这样 raw JSONL 通常不超过 50 篇。
+这样 raw JSONL 通常不超过 30 篇。
 
 ### Step 2: 打标 + 精筛（只保留会进表格的论文）
 
@@ -76,17 +76,9 @@ npx skills add https://github.com/vercel-labs/agent-browser --skill agent-browse
 
 其他论文（如一作非顶会、二作非顶会、非 Top 5 的其他）**全部丢弃**，不进入 JSONL。
 
-**⚠️ Venue 判定必须由 agent 人工完成（禁止纯字符串匹配）**
+**⚠️ Venue 判定**
 
-Google Scholar 上的 venue 字段经常被截断（末尾带 `…`），例如：
-- `"Proceedings of the 56th Annual Meeting of the Association for Computational …"` → 实际为 **ACL**
-- `"Proceedings of the 2019 Conference on Empirical Methods in Natural Language …"` → 实际为 **EMNLP**
-
-因此，`is_top_venue` 的判定**不能依赖简单的字符串子串匹配**。agent 必须：
-1. 读取 `references/top_venues.md` 了解顶刊顶会列表和别名
-2. **结合论文标题 + venue 片段 + 发表年份**，综合判断该论文实际发表在哪个会议/期刊
-3. 对于知名论文（如 XLNet、HotpotQA、OFA 等），即使 venue 被截断，也应根据常识推断出正确 venue
-4. 不确定时，通过 WebSearch 快速确认（搜索 `"[论文标题] accepted at [会议名]"` 或 `"[论文标题] published in [期刊名]"`）
+按 `references/top_venues.md` 的 Normalization Rules 和 aliases 判定。Google Scholar 上的 venue 字段常被截断，标准化后的子串匹配通常能正确识别。若 venue 被严重截断导致规则无法匹配，以论文标题搜索确认。
 
 ```json
 {
@@ -150,7 +142,7 @@ Google Scholar 上的 venue 字段经常被截断（末尾带 `…`），例如�
 
 ### 顶刊顶会判定规则
 
-**判定方式**：agent 结合论文标题 + venue 片段 + 发表年份，对照 `references/top_venues.md` 中定义的 venue 列表和别名，**人工综合判断**。禁止纯字符串子串匹配（因 Google Scholar venue 常被截断）。
+**判定方式**：按 `references/top_venues.md` 的 Normalization Rules 和 aliases 判定；venue 被严重截断导致规则无法匹配时，以论文标题搜索确认。
 
 核心规则摘要：
 - 一作/二作顶刊顶会引用量 = 一作顶刊顶会论文引用量 + 二作顶刊顶会论文引用量
@@ -297,10 +289,10 @@ Google Scholar 上的 venue 字段经常被截断（末尾带 `…`），例如�
 ### 数据检查
 - [ ] WebSearch 仅用于定位 Google Scholar Profile URL，找到后立即用 agent-browser 爬取
 - [ ] 反复点击 "SHOW MORE" 直到无法继续加载
-- [ ] 爬取时只记录两类论文到 raw JSONL：（1）作者列表前 10 位包含目标学者的；（2）引用量排名前 30 的。其他论文直接丢弃
+- [ ] 爬取时只记录两类论文到 raw JSONL：（1）作者列表前 10 位包含目标学者的；（2）引用量排名前 10 的。其他论文直接丢弃
 - [ ] `{name}_papers_classified.jsonl` 只包含两类论文：A. 一二作 + 顶刊顶会；B. 全局引用量 Top 5。其他论文已丢弃
 - [ ] `target_author_position` 已根据 `target_author_index` 严格判定：index==0→一作，index==1→二作，index>=2→其他。`authors` 中带 `*` 的必须设为 `"first"`
-- [ ] 区分顶会顶刊/非顶会顶刊（严格参照 `references/top_venues.md`，agent 人工判定，禁止纯字符串匹配）
+- [ ] 区分顶会顶刊/非顶会顶刊（按 `references/top_venues.md` 的 Normalization Rules 和 aliases 判定；venue 被严重截断导致规则无法匹配时，以论文标题搜索确认）
 - [ ] 引用量统计摘要 = 一作顶刊顶会合计 + 二作顶刊顶会合计（仅 A 类论文，必须严格相等）
 - [ ] 引用量统计数字是从 `{name}_papers_classified.jsonl` 的 A 类论文计算得出，不是独立估算
 - [ ] 引用量 Top 5 的论文无缺失（已在 raw JSONL 中核对）
